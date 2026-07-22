@@ -62,6 +62,40 @@ const roles: { name: string; group: string; permissions: string[] }[] = [
   },
 ];
 
+/** Starter services with per-size tiers (S/M/L/XL) — admin-editable afterwards. */
+const services: { name: string; description: string; tiers: { size: string; priceThb: string; durationMin: number }[] }[] = [
+  {
+    name: 'Bath & Brush',
+    description: 'Bath, blow-dry, and brush-out',
+    tiers: [
+      { size: 'S', priceThb: '350.00', durationMin: 45 },
+      { size: 'M', priceThb: '450.00', durationMin: 60 },
+      { size: 'L', priceThb: '550.00', durationMin: 75 },
+      { size: 'XL', priceThb: '650.00', durationMin: 90 },
+    ],
+  },
+  {
+    name: 'Full Groom',
+    description: 'Bath, haircut, nails, ears, and finishing',
+    tiers: [
+      { size: 'S', priceThb: '690.00', durationMin: 90 },
+      { size: 'M', priceThb: '790.00', durationMin: 105 },
+      { size: 'L', priceThb: '890.00', durationMin: 120 },
+      { size: 'XL', priceThb: '990.00', durationMin: 150 },
+    ],
+  },
+  {
+    name: 'Nail Trim',
+    description: 'Nail clipping and filing',
+    tiers: [
+      { size: 'S', priceThb: '150.00', durationMin: 15 },
+      { size: 'M', priceThb: '150.00', durationMin: 15 },
+      { size: 'L', priceThb: '200.00', durationMin: 30 },
+      { size: 'XL', priceThb: '200.00', durationMin: 30 },
+    ],
+  },
+];
+
 const shopSettings: { key: string; value: unknown }[] = [
   { key: 'shop.timezone', value: 'Asia/Bangkok' },
   { key: 'shop.hours', value: { openMin: 9 * 60, closeMin: 18 * 60 } },
@@ -98,6 +132,21 @@ async function main() {
         where: { roleId_permissionId: { roleId: role.id, permissionId: perm.id } },
         update: {},
         create: { roleId: role.id, permissionId: perm.id },
+      });
+    }
+  }
+
+  // Services + tiers. Service.name isn't unique in the schema, so match by name
+  // (create once, never clobber admin edits); tiers upsert on serviceId+sizeId.
+  for (const svc of services) {
+    const existing = await prisma.service.findFirst({ where: { name: svc.name, deletedAt: null }, select: { id: true } });
+    const service = existing ?? (await prisma.service.create({ data: { name: svc.name, description: svc.description } }));
+    for (const tier of svc.tiers) {
+      const size = await prisma.mdPetSize.findUniqueOrThrow({ where: { code: tier.size }, select: { id: true } });
+      await prisma.serviceTier.upsert({
+        where: { serviceId_sizeId: { serviceId: service.id, sizeId: size.id } },
+        update: {}, // keep admin-edited prices on reseed
+        create: { serviceId: service.id, sizeId: size.id, priceThb: tier.priceThb, durationMin: tier.durationMin },
       });
     }
   }
