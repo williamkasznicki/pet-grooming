@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
 import { Pet } from '../../generated/prisma/client.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
@@ -21,7 +22,7 @@ export class PetsService {
   async findOne(id: string): Promise<PetResponseDto> {
     const pet = await this.prisma.pet.findFirst({ where: { id, deletedAt: null } });
     if (!pet) {
-      throw new NotFoundException('Pet not found.');
+      throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
     return this.toResponse(pet);
   }
@@ -87,14 +88,14 @@ export class PetsService {
   private async ensureExists(id: string): Promise<void> {
     const pet = await this.prisma.pet.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
     if (!pet) {
-      throw new NotFoundException('Pet not found.');
+      throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
     const size = await this.prisma.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
     if (!size) {
-      throw new BadRequestException('Pet size does not exist or is inactive.');
+      throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }
   }
 

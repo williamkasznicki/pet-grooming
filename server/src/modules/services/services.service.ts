@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
 import { Prisma, ServiceTier } from '../../generated/prisma/client.js';
 import { CreateServiceDto } from './dto/create-service.dto.js';
@@ -137,7 +138,7 @@ export class ServicesService {
       include: { tiers: { orderBy: { sizeId: 'asc' } } },
     });
     if (!service) {
-      throw new NotFoundException('Service not found.');
+      throw new NotFoundException(ErrorMessages.SERVICE_NOT_FOUND);
     }
     return service;
   }
@@ -145,21 +146,21 @@ export class ServicesService {
   private async ensureServiceExists(id: string): Promise<void> {
     const service = await this.prisma.service.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
     if (!service) {
-      throw new NotFoundException('Service not found.');
+      throw new NotFoundException(ErrorMessages.SERVICE_NOT_FOUND);
     }
   }
 
   private async ensureTierBelongsToService(serviceId: string, tierId: string): Promise<void> {
     const tier = await this.prisma.serviceTier.findFirst({ where: { id: tierId, serviceId }, select: { id: true } });
     if (!tier) {
-      throw new NotFoundException('Service tier not found.');
+      throw new NotFoundException(ErrorMessages.SERVICE_TIER_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
     const size = await this.prisma.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
     if (!size) {
-      throw new BadRequestException('Pet size does not exist or is inactive.');
+      throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }
   }
 

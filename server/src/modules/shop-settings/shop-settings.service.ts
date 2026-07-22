@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ShopSetting } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
 import { ShopSettingResponseDto } from './dto/shop-setting-response.dto.js';
 import { UpdateShopSettingDto } from './dto/update-shop-setting.dto.js';
@@ -17,7 +18,7 @@ export class ShopSettingsService {
   async findOne(key: string): Promise<ShopSettingResponseDto> {
     const setting = await this.prisma.shopSetting.findUnique({ where: { key } });
     if (!setting) {
-      throw new NotFoundException('Shop setting not found.');
+      throw new NotFoundException(ErrorMessages.SHOP_SETTING_NOT_FOUND);
     }
     return this.toResponse(setting);
   }
@@ -39,13 +40,13 @@ export class ShopSettingsService {
 
   private toJsonInput(value: unknown): Prisma.InputJsonValue {
     if (value === undefined) {
-      throw new BadRequestException('Setting value is required.');
+      throw new BadRequestException(ErrorMessages.SHOP_SETTING_VALUE_REQUIRED);
     }
 
     try {
       JSON.stringify(value);
     } catch {
-      throw new BadRequestException('Setting value must be valid JSON.');
+      throw new BadRequestException(ErrorMessages.SHOP_SETTING_VALUE_INVALID);
     }
 
     return value as Prisma.InputJsonValue;
