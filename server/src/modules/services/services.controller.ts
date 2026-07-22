@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Public, RequirePermissions } from '../../common/auth/auth.decorators.js';
+import { Public, RequirePermissions } from '../../common/decorators/auth.decorators.js';
 import { CreateServiceDto } from './dto/create-service.dto.js';
 import { CreateServiceTierDto } from './dto/create-service-tier.dto.js';
 import { ServiceResponseDto, ServiceTierResponseDto } from './dto/service-response.dto.js';

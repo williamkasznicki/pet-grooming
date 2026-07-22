@@ -2,7 +2,7 @@
 // Convention reference: docs/RBAC.md
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { hashPassword } from '../src/common/auth/password.util.js';
+import { hashPassword } from '../src/common/utils/password.util.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
 const prisma = new PrismaClient({

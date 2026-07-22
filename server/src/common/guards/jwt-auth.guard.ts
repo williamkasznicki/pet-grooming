@@ -5,8 +5,8 @@ import { Request } from 'express';
 import { ErrorMessages } from '../constants/error-messages.constant.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PermissionsService } from '../../modules/auth/permissions.service.js';
-import { IS_PUBLIC_KEY } from './auth.decorators.js';
-import { AuthenticatedRequest } from './auth.types.js';
+import { IS_PUBLIC_KEY } from '../decorators/auth.decorators.js';
+import { AuthenticatedRequest } from '../types/auth.types.js';
 
 type AccessTokenPayload = { sub: string };
 

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
+import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { PermissionsService } from '../auth/permissions.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto.js';

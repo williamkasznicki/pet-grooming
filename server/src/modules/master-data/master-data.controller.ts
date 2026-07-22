@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { Public } from '../../common/auth/auth.decorators.js';
+import { Public } from '../../common/decorators/auth.decorators.js';
 import { MasterDataResponseDto } from './dto/master-data-response.dto.js';
 import { MasterDataService } from './master-data.service.js';
 

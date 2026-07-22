@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { hashPassword, verifyPassword } from '../../common/auth/password.util.js';
+import { hashPassword, verifyPassword } from '../../common/utils/password.util.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
+import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuthResponseDto, AuthUserDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';

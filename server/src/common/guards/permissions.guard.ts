@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ErrorMessages } from '../constants/error-messages.constant.js';
-import { PERMISSIONS_KEY } from './auth.decorators.js';
-import { AuthenticatedRequest, hasPermission } from './auth.types.js';
+import { PERMISSIONS_KEY } from '../decorators/auth.decorators.js';
+import { AuthenticatedRequest, hasPermission } from '../types/auth.types.js';
 
 /** Global guard: enforces @RequirePermissions metadata. Runs after JwtAuthGuard. */
 @Injectable()

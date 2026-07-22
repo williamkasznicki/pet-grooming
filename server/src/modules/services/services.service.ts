@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
+import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { Prisma } from '../../generated/prisma/client.js';
 import { CreateServiceDto } from './dto/create-service.dto.js';
 import { CreateServiceTierDto } from './dto/create-service-tier.dto.js';

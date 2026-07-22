@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, RequirePermissions } from '../../common/auth/auth.decorators.js';
-import type { AuthUser } from '../../common/auth/auth.types.js';
+import { CurrentUser, RequirePermissions } from '../../common/decorators/auth.decorators.js';
+import type { AuthUser } from '../../common/types/auth.types.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
 import { PetResponseDto } from './dto/pet-response.dto.js';
 import { UpdatePetDto } from './dto/update-pet.dto.js';

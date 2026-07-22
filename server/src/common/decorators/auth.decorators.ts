@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
-import { AuthenticatedRequest, AuthUser } from './auth.types.js';
+import { AuthenticatedRequest, AuthUser } from '../types/auth.types.js';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 /** Skip authentication for this route. */

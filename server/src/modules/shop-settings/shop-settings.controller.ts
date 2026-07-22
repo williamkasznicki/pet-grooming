@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../../common/auth/auth.decorators.js';
+import { RequirePermissions } from '../../common/decorators/auth.decorators.js';
 import { ShopSettingResponseDto } from './dto/shop-setting-response.dto.js';
 import { UpdateShopSettingDto } from './dto/update-shop-setting.dto.js';
 import { ShopSettingsService } from './shop-settings.service.js';

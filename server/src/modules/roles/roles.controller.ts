@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { RequirePermissions } from '../../common/auth/auth.decorators.js';
+import { RequirePermissions } from '../../common/decorators/auth.decorators.js';
 import { AssignRolePermissionDto } from './dto/assign-role-permission.dto.js';
 import { CreateRoleDto } from './dto/create-role.dto.js';
 import { RoleResponseDto } from './dto/role-response.dto.js';

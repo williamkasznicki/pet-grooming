@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { AuthUser } from '../../common/auth/auth.types.js';
+import { AuthUser } from '../../common/types/auth.types.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
+import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
 import { PetResponseDto } from './dto/pet-response.dto.js';
 import { UpdatePetDto } from './dto/update-pet.dto.js';

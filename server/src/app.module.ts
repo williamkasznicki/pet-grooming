@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
-import { PermissionsGuard } from './common/auth/permissions.guard.js';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
+import { PermissionsGuard } from './common/guards/permissions.guard.js';
 import { AuthModule } from './modules/auth/auth.module.js';
+import { MailModule } from './modules/mail/mail.module.js';
 import { MasterDataModule } from './modules/master-data/master-data.module.js';
 import { PermissionsModule } from './modules/permissions/permissions.module.js';
 import { PetsModule } from './modules/pets/pets.module.js';
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
   imports: [
     PrismaModule,
     AuthModule,
+    MailModule,
     PetsModule,
     ServicesModule,
     MasterDataModule,

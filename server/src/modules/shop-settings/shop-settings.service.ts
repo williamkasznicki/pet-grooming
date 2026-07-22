@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, ShopSetting } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
+import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { ShopSettingResponseDto } from './dto/shop-setting-response.dto.js';
 import { UpdateShopSettingDto } from './dto/update-shop-setting.dto.js';
 

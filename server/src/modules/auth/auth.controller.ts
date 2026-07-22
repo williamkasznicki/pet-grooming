@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, Public } from '../../common/auth/auth.decorators.js';
-import type { AuthUser } from '../../common/auth/auth.types.js';
+import { CurrentUser, Public } from '../../common/decorators/auth.decorators.js';
+import type { AuthUser } from '../../common/types/auth.types.js';
 import { AuthService } from './auth.service.js';
 import { AuthResponseDto, AuthUserDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
