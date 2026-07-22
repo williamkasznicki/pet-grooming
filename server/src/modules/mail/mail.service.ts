@@ -45,4 +45,32 @@ export class MailService {
       throw new Error('Email delivery failed');
     }
   }
+
+  /** Booking confirmation. Fire-and-forget from the booking flow — never blocks the response. */
+  async sendBookingConfirmation(input: {
+    to: string;
+    clientName: string;
+    petName: string;
+    serviceName: string;
+    staffName: string;
+    startsAtLocal: string;
+    priceThb: string;
+  }): Promise<void> {
+    await this.send({
+      to: input.to,
+      subject: `Booking confirmed — ${input.serviceName} for ${input.petName}`,
+      html: `
+        <p>Hi ${input.clientName},</p>
+        <p>Your booking is confirmed:</p>
+        <ul>
+          <li><strong>Service:</strong> ${input.serviceName}</li>
+          <li><strong>Pet:</strong> ${input.petName}</li>
+          <li><strong>Groomer:</strong> ${input.staffName}</li>
+          <li><strong>When:</strong> ${input.startsAtLocal}</li>
+          <li><strong>Price:</strong> ${input.priceThb} THB (pay at shop)</li>
+        </ul>
+        <p>See you soon! 🐾</p>
+      `,
+    });
+  }
 }

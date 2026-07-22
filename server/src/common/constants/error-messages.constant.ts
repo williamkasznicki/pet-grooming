@@ -36,6 +36,15 @@ export const ErrorMessages = {
   // Validation
   PRICE_INVALID: 'priceThb must be a non-negative amount with up to 2 decimals',
 
+  // Bookings
+  BOOKING_NOT_FOUND: 'Booking not found.',
+  BOOKING_SLOT_UNAVAILABLE: 'The requested time slot is not available.',
+  BOOKING_SLOT_MISALIGNED: 'startsAt must land on the booking slot grid.',
+  BOOKING_TOO_SOON: 'This time is too soon — pick a later slot.',
+  BOOKING_STATUS_TRANSITION_INVALID: 'This status change is not allowed from the current status.',
+  BOOKING_CUTOFF_PASSED: 'The cancellation window for this booking has passed.',
+  BOOKING_ALREADY_PAID: 'This booking is already marked as paid.',
+
   // Auth
   INVALID_CREDENTIALS: 'Invalid email or password.',
   EMAIL_TAKEN: 'An account with this email already exists.',

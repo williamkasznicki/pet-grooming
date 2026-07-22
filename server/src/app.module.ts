@@ -6,6 +6,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from './common/guards/permissions.guard.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AvailabilityModule } from './modules/availability/availability.module.js';
+import { BookingsModule } from './modules/bookings/bookings.module.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { MasterDataModule } from './modules/master-data/master-data.module.js';
 import { PermissionsModule } from './modules/permissions/permissions.module.js';
@@ -28,6 +29,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ShopSettingsModule,
     StaffModule,
     AvailabilityModule,
+    BookingsModule,
     UsersModule,
     RolesModule,
     PermissionsModule,

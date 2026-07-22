@@ -11,3 +11,10 @@ export type OwnerScope = { ownerId?: string };
 export function ownerScope(user: AuthUser): OwnerScope {
   return user.permissions.has('*') ? {} : { ownerId: user.id };
 }
+
+/** Same rule for rows keyed by clientId (bookings). */
+export type ClientScope = { clientId?: string };
+
+export function clientScope(user: AuthUser): ClientScope {
+  return user.permissions.has('*') ? {} : { clientId: user.id };
+}

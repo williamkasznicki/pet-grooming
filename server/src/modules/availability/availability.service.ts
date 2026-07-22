@@ -18,9 +18,9 @@ import { AvailabilityQueryDto } from './dto/availability-query.dto.js';
 import { AvailabilityResponseDto } from './dto/availability-response.dto.js';
 
 /** Booking statuses that occupy a groomer's time. */
-const BLOCKING_STATUS_CODES = ['CONFIRMED', 'IN_PROGRESS'];
+const BLOCKING_STATUS_CODES = [ 'CONFIRMED', 'IN_PROGRESS' ];
 
-const DAY_MIN = 1440;
+const DAY_MIN = 1440; // 60 min * 24 h
 
 /**
  * Deterministic availability engine (docs/DESIGN.md): for a service × pet size
@@ -29,15 +29,15 @@ const DAY_MIN = 1440;
  */
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly availabilityRepository: AvailabilityRepository) {}
+  constructor ( private readonly availabilityRepository: AvailabilityRepository ) { }
 
-  async getAvailability(query: AvailabilityQueryDto): Promise<AvailabilityResponseDto> {
-    const [settings, tier] = await Promise.all([this.loadSettings(), this.loadTier(query)]);
+  async getAvailability ( query: AvailabilityQueryDto ): Promise<AvailabilityResponseDto> {
+    const [ settings, tier ] = await Promise.all( [ this.loadSettings(), this.loadTier( query ) ] );
 
     // Day bounds as absolute instants of the shop-local calendar day.
-    const [year, month, day] = query.date.split('-').map(Number);
-    const dayStart = new TZDate(year, month - 1, day, 0, 0, 0, settings.timezone);
-    const dayEnd = addDays(dayStart, 1);
+    const [ year, month, day ] = query.date.split( '-' ).map( Number );
+    const dayStart = new TZDate( year, month - 1, day, 0, 0, 0, settings.timezone );
+    const dayEnd = addDays( dayStart, 1 );
     const weekday = dayStart.getDay();
 
     const emptyResponse: AvailabilityResponseDto = {
@@ -49,79 +49,79 @@ export class AvailabilityService {
 
     // Entirely past days have no availability; min-notice floors today's slots.
     const current = now();
-    if (isBefore(dayEnd, current)) return emptyResponse;
-    const noticeFloor = addMinutes(current, settings.minNoticeMin);
-    const earliestStartMin = isAfter(noticeFloor, dayStart)
-      ? Math.max(0, differenceInMinutes(noticeFloor, dayStart))
+    if ( isBefore( dayEnd, current ) ) return emptyResponse;
+    const noticeFloor = addMinutes( current, settings.minNoticeMin );
+    const earliestStartMin = isAfter( noticeFloor, dayStart )
+      ? Math.max( 0, differenceInMinutes( noticeFloor, dayStart ) )
       : 0;
-    if (earliestStartMin >= DAY_MIN) return emptyResponse;
+    if ( earliestStartMin >= DAY_MIN ) return emptyResponse;
 
-    const staff = await this.availabilityRepository.findActiveStaffForDay(query, weekday, dayStart, dayEnd);
-    const staffIds = staff.map((s) => s.id);
+    const staff = await this.availabilityRepository.findActiveStaffForDay( query, weekday, dayStart, dayEnd );
+    const staffIds = staff.map( ( s ) => s.id );
 
-    const [bookings, shopTimeOff] = await Promise.all([
-      this.availabilityRepository.findBlockingBookings(staffIds, dayStart, dayEnd, BLOCKING_STATUS_CODES),
-      this.availabilityRepository.findShopTimeOffForDay(dayStart, dayEnd),
-    ]);
+    const [ bookings, shopTimeOff ] = await Promise.all( [
+      this.availabilityRepository.findBlockingBookings( staffIds, dayStart, dayEnd, BLOCKING_STATUS_CODES ),
+      this.availabilityRepository.findShopTimeOffForDay( dayStart, dayEnd ),
+    ] );
 
     const wholeDay: MinuteInterval = { startMin: 0, endMin: DAY_MIN };
-    const toInterval = (startsAt: Date, endsAt: Date): MinuteInterval | null =>
+    const toInterval = ( startsAt: Date, endsAt: Date ): MinuteInterval | null =>
       clampInterval(
         {
-          startMin: differenceInMinutes(startsAt, dayStart),
-          endMin: differenceInMinutes(endsAt, dayStart),
+          startMin: differenceInMinutes( startsAt, dayStart ),
+          endMin: differenceInMinutes( endsAt, dayStart ),
         },
         wholeDay,
       );
-    const timeOffIntervals = (rows: { isPermanent: boolean; startsAt: Date | null; endsAt: Date | null }[]) =>
+    const timeOffIntervals = ( rows: { isPermanent: boolean; startsAt: Date | null; endsAt: Date | null }[] ) =>
       rows
-        .map((t) => (t.isPermanent ? wholeDay : t.startsAt && t.endsAt ? toInterval(t.startsAt, t.endsAt) : null))
-        .filter((i): i is MinuteInterval => i !== null);
+        .map( ( t ) => ( t.isPermanent ? wholeDay : t.startsAt && t.endsAt ? toInterval( t.startsAt, t.endsAt ) : null ) )
+        .filter( ( i ): i is MinuteInterval => i !== null );
 
-    const shopBusy = timeOffIntervals(shopTimeOff);
+    const shopBusy = timeOffIntervals( shopTimeOff );
 
     const shopHours: MinuteInterval = { startMin: settings.openMin, endMin: settings.closeMin };
-    const perStaff = staff.map((member) => {
+    const perStaff = staff.map( ( member ) => {
       const windows = member.workingHours
-        .map((window) => clampInterval(window, shopHours))
-        .filter((w): w is MinuteInterval => w !== null);
+        .map( ( window ) => clampInterval( window, shopHours ) )
+        .filter( ( w ): w is MinuteInterval => w !== null );
 
       const busy: MinuteInterval[] = [
         ...shopBusy,
-        ...timeOffIntervals(member.timeOff),
+        ...timeOffIntervals( member.timeOff ),
         ...bookings
-          .filter((b) => b.staffId === member.id)
-          .map((b) => toInterval(b.startsAt, b.endsAt))
-          .filter((i): i is MinuteInterval => i !== null),
+          .filter( ( b ) => b.staffId === member.id )
+          .map( ( b ) => toInterval( b.startsAt, b.endsAt ) )
+          .filter( ( i ): i is MinuteInterval => i !== null ),
       ];
 
       return {
         staffId: member.id,
-        slots: computeStaffSlots(windows, busy, tier.durationMin, settings.slotStepMin, earliestStartMin),
+        slots: computeStaffSlots( windows, busy, tier.durationMin, settings.slotStepMin, earliestStartMin ),
       };
-    });
+    } );
 
-    const merged = mergeStaffSlots(perStaff);
+    const merged = mergeStaffSlots( perStaff );
     return {
       ...emptyResponse,
-      slots: [...merged.entries()].map(([startMin, ids]) => ({
-        start: addMinutes(dayStart, startMin).toISOString(),
-        end: addMinutes(dayStart, startMin + tier.durationMin).toISOString(),
+      slots: [ ...merged.entries() ].map( ( [ startMin, ids ] ) => ( {
+        start: addMinutes( dayStart, startMin ).toISOString(),
+        end: addMinutes( dayStart, startMin + tier.durationMin ).toISOString(),
         staffIds: ids,
-      })),
+      } ) ),
     };
   }
 
-  private async loadTier(query: AvailabilityQueryDto): Promise<{ durationMin: number }> {
-    const tier = await this.availabilityRepository.findActiveTier(query);
-    if (!tier) {
-      throw new NotFoundException(ErrorMessages.SERVICE_TIER_NOT_FOUND);
+  private async loadTier ( query: AvailabilityQueryDto ): Promise<{ durationMin: number }> {
+    const tier = await this.availabilityRepository.findActiveTier( query );
+    if ( !tier ) {
+      throw new NotFoundException( ErrorMessages.SERVICE_TIER_NOT_FOUND );
     }
     return tier;
   }
 
-  private async loadSettings(): Promise<ShopOperatingSettings> {
+  private async loadSettings (): Promise<ShopOperatingSettings> {
     const rows = await this.availabilityRepository.findOperatingSettings();
-    return parseOperatingSettings(rows);
+    return parseOperatingSettings( rows );
   }
 }

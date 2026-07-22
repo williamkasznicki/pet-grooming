@@ -34,6 +34,12 @@ async function bootstrap () {
     },
   } );
 
-  await app.listen( process.env.PORT ?? 4000 );
+
+  await app.listen( process.env.PORT ?? 4000, () => {
+    setInterval( () => {
+      const memory = process.memoryUsage();
+      console.log( `%cHeap Used: ${ ( memory.heapUsed / 1024 / 1024 ).toFixed( 2 ) } MB`, 'color: #4CAF50; font-weight: bold;' );
+    }, 5000 );
+  } );
 }
 void bootstrap();
