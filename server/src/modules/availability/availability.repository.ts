@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { OPERATING_SETTING_KEYS } from '../shop-settings/shop-operating-settings.js';
 import { AvailabilityQueryDto } from './dto/availability-query.dto.js';
 
 export type AvailabilityStaff = Prisma.StaffProfileGetPayload<{
@@ -72,9 +73,9 @@ export class AvailabilityRepository {
     });
   }
 
-  findAvailabilitySettings(): Promise<Prisma.ShopSettingGetPayload<object>[]> {
+  findOperatingSettings(): Promise<Prisma.ShopSettingGetPayload<object>[]> {
     return this.prisma.client.shopSetting.findMany({
-      where: { key: { in: ['shop.timezone', 'shop.hours', 'booking.slotStepMin', 'booking.minNoticeMin'] } },
+      where: { key: { in: [...OPERATING_SETTING_KEYS] } },
     });
   }
 }

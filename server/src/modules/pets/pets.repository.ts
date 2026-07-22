@@ -1,10 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { now } from '../../common/utils/clock.util.js';
+import { OwnerScope } from '../../common/utils/scope.util.js';
 import { Pet, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-
-/** Owner scoping: {} = unrestricted (super admin), { ownerId } = own rows only. */
-export type OwnerScope = { ownerId?: string };
 
 /**
  * REFERENCE REPOSITORY (API-CONVENTIONS.md): all prisma.client access for the

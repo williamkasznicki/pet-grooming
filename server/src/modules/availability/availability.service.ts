@@ -4,6 +4,10 @@ import { addDays, addMinutes, differenceInMinutes, isAfter, isBefore } from 'dat
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { now } from '../../common/utils/clock.util.js';
 import {
+  ShopOperatingSettings,
+  parseOperatingSettings,
+} from '../shop-settings/shop-operating-settings.js';
+import {
   MinuteInterval,
   clampInterval,
   computeStaffSlots,
@@ -17,20 +21,6 @@ import { AvailabilityResponseDto } from './dto/availability-response.dto.js';
 const BLOCKING_STATUS_CODES = ['CONFIRMED', 'IN_PROGRESS'];
 
 const DAY_MIN = 1440;
-
-type Settings = {
-  timezone: string;
-  shopHours: MinuteInterval;
-  slotStepMin: number;
-  minNoticeMin: number;
-};
-
-const DEFAULTS: Settings = {
-  timezone: 'Asia/Bangkok',
-  shopHours: { startMin: 9 * 60, endMin: 18 * 60 },
-  slotStepMin: 30,
-  minNoticeMin: 60,
-};
 
 /**
  * Deterministic availability engine (docs/DESIGN.md): for a service × pet size
@@ -90,9 +80,10 @@ export class AvailabilityService {
 
     const shopBusy = timeOffIntervals(shopTimeOff);
 
+    const shopHours: MinuteInterval = { startMin: settings.openMin, endMin: settings.closeMin };
     const perStaff = staff.map((member) => {
       const windows = member.workingHours
-        .map((window) => clampInterval(window, settings.shopHours))
+        .map((window) => clampInterval(window, shopHours))
         .filter((w): w is MinuteInterval => w !== null);
 
       const busy: MinuteInterval[] = [
@@ -129,19 +120,8 @@ export class AvailabilityService {
     return tier;
   }
 
-  private async loadSettings(): Promise<Settings> {
-    const rows = await this.availabilityRepository.findAvailabilitySettings();
-    const byKey = new Map(rows.map((row) => [row.key, row.value]));
-
-    const hours = byKey.get('shop.hours') as { openMin?: number; closeMin?: number } | undefined;
-    return {
-      timezone: (byKey.get('shop.timezone') as string | undefined) ?? DEFAULTS.timezone,
-      shopHours:
-        hours?.openMin !== undefined && hours?.closeMin !== undefined
-          ? { startMin: hours.openMin, endMin: hours.closeMin }
-          : DEFAULTS.shopHours,
-      slotStepMin: (byKey.get('booking.slotStepMin') as number | undefined) ?? DEFAULTS.slotStepMin,
-      minNoticeMin: (byKey.get('booking.minNoticeMin') as number | undefined) ?? DEFAULTS.minNoticeMin,
-    };
+  private async loadSettings(): Promise<ShopOperatingSettings> {
+    const rows = await this.availabilityRepository.findOperatingSettings();
+    return parseOperatingSettings(rows);
   }
 }

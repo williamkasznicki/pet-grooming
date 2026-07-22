@@ -2,10 +2,11 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { AuthUser } from '../../common/types/auth.types.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
+import { ownerScope } from '../../common/utils/scope.util.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
 import { PetResponseDto } from './dto/pet-response.dto.js';
 import { UpdatePetDto } from './dto/update-pet.dto.js';
-import { OwnerScope, PetsRepository } from './pets.repository.js';
+import { PetsRepository } from './pets.repository.js';
 
 /**
  * Row-level scoping (docs/RBAC.md): users act on their own pets; the "*"
@@ -16,12 +17,12 @@ export class PetsService {
   constructor(private readonly petsRepository: PetsRepository) {}
 
   async findAll(user: AuthUser): Promise<PetResponseDto[]> {
-    const pets = await this.petsRepository.findManyScoped(this.ownerScope(user));
+    const pets = await this.petsRepository.findManyScoped(ownerScope(user));
     return pets.map((pet) => PetResponseDto.from(pet));
   }
 
   async findOne(id: string, user: AuthUser): Promise<PetResponseDto> {
-    const pet = await this.petsRepository.findByIdScoped(id, this.ownerScope(user));
+    const pet = await this.petsRepository.findByIdScoped(id, ownerScope(user));
     if (!pet) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
@@ -77,12 +78,8 @@ export class PetsService {
     }
   }
 
-  private ownerScope(user: AuthUser): OwnerScope {
-    return user.permissions.has('*') ? {} : { ownerId: user.id };
-  }
-
   private async ensureExists(id: string, user: AuthUser): Promise<void> {
-    if (!(await this.petsRepository.existsScoped(id, this.ownerScope(user)))) {
+    if (!(await this.petsRepository.existsScoped(id, ownerScope(user)))) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
   }
