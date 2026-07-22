@@ -12,7 +12,7 @@ export class ShopSettingsService {
 
   async findAll(): Promise<ShopSettingResponseDto[]> {
     const settings = await this.prisma.shopSetting.findMany({ orderBy: { key: 'asc' } });
-    return settings.map((setting) => this.toResponse(setting));
+    return settings.map((setting) => ShopSettingResponseDto.from(setting));
   }
 
   async findOne(key: string): Promise<ShopSettingResponseDto> {
@@ -20,7 +20,7 @@ export class ShopSettingsService {
     if (!setting) {
       throw new NotFoundException(ErrorMessages.SHOP_SETTING_NOT_FOUND);
     }
-    return this.toResponse(setting);
+    return ShopSettingResponseDto.from(setting);
   }
 
   async upsert(key: string, dto: UpdateShopSettingDto): Promise<ShopSettingResponseDto> {
@@ -32,7 +32,7 @@ export class ShopSettingsService {
         create: { key, value },
         update: { value },
       });
-      return this.toResponse(setting);
+      return ShopSettingResponseDto.from(setting);
     } catch (error) {
       translatePrismaError(error);
     }

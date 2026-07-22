@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
-import { Pet } from '../../generated/prisma/client.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
 import { PetResponseDto } from './dto/pet-response.dto.js';
 import { UpdatePetDto } from './dto/update-pet.dto.js';
@@ -16,7 +15,7 @@ export class PetsService {
       where: { deletedAt: null },
       orderBy: { createdAt: 'desc' },
     });
-    return pets.map((pet) => this.toResponse(pet));
+    return pets.map((pet) => PetResponseDto.from(pet));
   }
 
   async findOne(id: string): Promise<PetResponseDto> {
@@ -24,7 +23,7 @@ export class PetsService {
     if (!pet) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
-    return this.toResponse(pet);
+    return PetResponseDto.from(pet);
   }
 
   async create(dto: CreatePetDto): Promise<PetResponseDto> {
@@ -41,7 +40,7 @@ export class PetsService {
           notes: dto.notes,
         },
       });
-      return this.toResponse(pet);
+      return PetResponseDto.from(pet);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -65,7 +64,7 @@ export class PetsService {
           notes: dto.notes,
         },
       });
-      return this.toResponse(pet);
+      return PetResponseDto.from(pet);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -79,7 +78,7 @@ export class PetsService {
         where: { id },
         data: { deletedAt: new Date() },
       });
-      return this.toResponse(pet);
+      return PetResponseDto.from(pet);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -99,17 +98,4 @@ export class PetsService {
     }
   }
 
-  private toResponse(pet: Pet): PetResponseDto {
-    return {
-      id: pet.id,
-      ownerId: pet.ownerId,
-      name: pet.name,
-      breed: pet.breed,
-      sizeId: pet.sizeId,
-      birthDate: pet.birthDate?.toISOString() ?? null,
-      notes: pet.notes,
-      createdAt: pet.createdAt.toISOString(),
-      updatedAt: pet.updatedAt.toISOString(),
-    };
-  }
 }

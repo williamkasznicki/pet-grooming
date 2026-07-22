@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
-import { Prisma, ServiceTier } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { CreateServiceDto } from './dto/create-service.dto.js';
 import { CreateServiceTierDto } from './dto/create-service-tier.dto.js';
 import { ServiceResponseDto, ServiceTierResponseDto } from './dto/service-response.dto.js';
@@ -21,12 +21,12 @@ export class ServicesService {
       include: { tiers: { orderBy: { sizeId: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     });
-    return services.map((service) => this.toServiceResponse(service));
+    return services.map((service) => ServiceResponseDto.from(service));
   }
 
   async findOne(id: string): Promise<ServiceResponseDto> {
     const service = await this.findExistingService(id);
-    return this.toServiceResponse(service);
+    return ServiceResponseDto.from(service);
   }
 
   async create(dto: CreateServiceDto): Promise<ServiceResponseDto> {
@@ -39,7 +39,7 @@ export class ServicesService {
         },
         include: { tiers: true },
       });
-      return this.toServiceResponse(service);
+      return ServiceResponseDto.from(service);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -58,7 +58,7 @@ export class ServicesService {
         },
         include: { tiers: { orderBy: { sizeId: 'asc' } } },
       });
-      return this.toServiceResponse(service);
+      return ServiceResponseDto.from(service);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -73,7 +73,7 @@ export class ServicesService {
         data: { deletedAt: new Date(), active: false },
         include: { tiers: { orderBy: { sizeId: 'asc' } } },
       });
-      return this.toServiceResponse(service);
+      return ServiceResponseDto.from(service);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -92,7 +92,7 @@ export class ServicesService {
           durationMin: dto.durationMin,
         },
       });
-      return this.toTierResponse(tier);
+      return ServiceTierResponseDto.from(tier);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -114,7 +114,7 @@ export class ServicesService {
           durationMin: dto.durationMin,
         },
       });
-      return this.toTierResponse(tier);
+      return ServiceTierResponseDto.from(tier);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -126,7 +126,7 @@ export class ServicesService {
 
     try {
       const tier = await this.prisma.serviceTier.delete({ where: { id: tierId } });
-      return this.toTierResponse(tier);
+      return ServiceTierResponseDto.from(tier);
     } catch (error) {
       translatePrismaError(error);
     }
@@ -164,25 +164,4 @@ export class ServicesService {
     }
   }
 
-  private toServiceResponse(service: ServiceWithTiers): ServiceResponseDto {
-    return {
-      id: service.id,
-      name: service.name,
-      description: service.description,
-      active: service.active,
-      createdAt: service.createdAt.toISOString(),
-      updatedAt: service.updatedAt.toISOString(),
-      tiers: service.tiers.map((tier) => this.toTierResponse(tier)),
-    };
-  }
-
-  private toTierResponse(tier: ServiceTier): ServiceTierResponseDto {
-    return {
-      id: tier.id,
-      serviceId: tier.serviceId,
-      sizeId: tier.sizeId,
-      priceThb: tier.priceThb.toString(),
-      durationMin: tier.durationMin,
-    };
-  }
 }
