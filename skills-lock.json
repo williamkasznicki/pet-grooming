@@ -7,6 +7,12 @@
       "skillPath": "skills/design-system/SKILL.md",
       "computedHash": "04ba4a8436c2d2fadcbeac7bc1ca8b8434096ebb6bf724426f5c2468430477d5"
     },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "93f53fd1c0352d3d7ec17b8f73d7351bf76f4821e55d123c9d2abc2c53ba48e4"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -24,6 +30,18 @@
       "sourceType": "github",
       "skillPath": "skills/nestjs-patterns/SKILL.md",
       "computedHash": "b0ba81185468f7c6e950b4de91fae8004a5d56501a31ea63caa5f7cc3854e6a7"
+    },
+    "skill-scout": {
+      "source": "affaan-m/ECC",
+      "sourceType": "github",
+      "skillPath": "skills/skill-scout/SKILL.md",
+      "computedHash": "01312193cd23fdc0c8eb65a8b507bd9a63c3474805451c088e500dd6903d4b2c"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/web-design-guidelines/SKILL.md",
+      "computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
     }
   }
 }
