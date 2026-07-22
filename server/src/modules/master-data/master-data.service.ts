@@ -7,7 +7,7 @@ export class MasterDataService {
   constructor(private readonly prisma: PrismaService) {}
 
   async listPetSizes(): Promise<MasterDataResponseDto[]> {
-    const sizes = await this.prisma.mdPetSize.findMany({
+    const sizes = await this.prisma.client.mdPetSize.findMany({
       where: { isActive: true },
       orderBy: { id: 'asc' },
     });
@@ -15,7 +15,7 @@ export class MasterDataService {
   }
 
   async listBookingStatuses(): Promise<MasterDataResponseDto[]> {
-    const statuses = await this.prisma.mdBookingStatus.findMany({
+    const statuses = await this.prisma.client.mdBookingStatus.findMany({
       where: { isActive: true },
       orderBy: { id: 'asc' },
     });
@@ -23,7 +23,7 @@ export class MasterDataService {
   }
 
   async listPaymentStatuses(): Promise<MasterDataResponseDto[]> {
-    const statuses = await this.prisma.mdPaymentStatus.findMany({
+    const statuses = await this.prisma.client.mdPaymentStatus.findMany({
       where: { isActive: true },
       orderBy: { id: 'asc' },
     });

@@ -16,8 +16,8 @@ export class ServicesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<ServiceResponseDto[]> {
-    const services = await this.prisma.service.findMany({
-      where: { deletedAt: null },
+    const services = await this.prisma.client.service.findMany({
+      // deletedAt: null is applied automatically (soft-delete filter in PrismaService)
       include: { tiers: { orderBy: { sizeId: 'asc' } } },
       orderBy: { createdAt: 'desc' },
     });
@@ -31,7 +31,7 @@ export class ServicesService {
 
   async create(dto: CreateServiceDto): Promise<ServiceResponseDto> {
     try {
-      const service = await this.prisma.service.create({
+      const service = await this.prisma.client.service.create({
         data: {
           name: dto.name,
           description: dto.description,
@@ -49,7 +49,7 @@ export class ServicesService {
     await this.ensureServiceExists(id);
 
     try {
-      const service = await this.prisma.service.update({
+      const service = await this.prisma.client.service.update({
         where: { id },
         data: {
           name: dto.name,
@@ -68,7 +68,7 @@ export class ServicesService {
     await this.ensureServiceExists(id);
 
     try {
-      const service = await this.prisma.service.update({
+      const service = await this.prisma.client.service.update({
         where: { id },
         data: { deletedAt: new Date(), active: false },
         include: { tiers: { orderBy: { sizeId: 'asc' } } },
@@ -84,7 +84,7 @@ export class ServicesService {
     await this.ensureActiveSize(dto.sizeId);
 
     try {
-      const tier = await this.prisma.serviceTier.create({
+      const tier = await this.prisma.client.serviceTier.create({
         data: {
           serviceId,
           sizeId: dto.sizeId,
@@ -106,7 +106,7 @@ export class ServicesService {
     }
 
     try {
-      const tier = await this.prisma.serviceTier.update({
+      const tier = await this.prisma.client.serviceTier.update({
         where: { id: tierId },
         data: {
           sizeId: dto.sizeId,
@@ -125,7 +125,7 @@ export class ServicesService {
     await this.ensureTierBelongsToService(serviceId, tierId);
 
     try {
-      const tier = await this.prisma.serviceTier.delete({ where: { id: tierId } });
+      const tier = await this.prisma.client.serviceTier.delete({ where: { id: tierId } });
       return ServiceTierResponseDto.from(tier);
     } catch (error) {
       translatePrismaError(error);
@@ -133,8 +133,8 @@ export class ServicesService {
   }
 
   private async findExistingService(id: string): Promise<ServiceWithTiers> {
-    const service = await this.prisma.service.findFirst({
-      where: { id, deletedAt: null },
+    const service = await this.prisma.client.service.findFirst({
+      where: { id },
       include: { tiers: { orderBy: { sizeId: 'asc' } } },
     });
     if (!service) {
@@ -144,21 +144,21 @@ export class ServicesService {
   }
 
   private async ensureServiceExists(id: string): Promise<void> {
-    const service = await this.prisma.service.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+    const service = await this.prisma.client.service.findFirst({ where: { id }, select: { id: true } });
     if (!service) {
       throw new NotFoundException(ErrorMessages.SERVICE_NOT_FOUND);
     }
   }
 
   private async ensureTierBelongsToService(serviceId: string, tierId: string): Promise<void> {
-    const tier = await this.prisma.serviceTier.findFirst({ where: { id: tierId, serviceId }, select: { id: true } });
+    const tier = await this.prisma.client.serviceTier.findFirst({ where: { id: tierId, serviceId }, select: { id: true } });
     if (!tier) {
       throw new NotFoundException(ErrorMessages.SERVICE_TIER_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
-    const size = await this.prisma.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
+    const size = await this.prisma.client.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
     if (!size) {
       throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }

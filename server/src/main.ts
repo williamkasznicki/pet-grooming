@@ -22,7 +22,17 @@ async function bootstrap () {
     .setVersion( '1.0' )
     .addBearerAuth()
     .build();
-  SwaggerModule.setup( 'docs', app, () => SwaggerModule.createDocument( app, config ) );
+
+  const createDocument = () => SwaggerModule.createDocument( app, config );
+  SwaggerModule.setup( 'docs', app, createDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      filter: true,
+      showRequestDuration: true,
+      operationsSorter: 'alpha',
+      tagsSorter: 'alpha',
+    },
+  } );
 
   await app.listen( process.env.PORT ?? 4000 );
 }

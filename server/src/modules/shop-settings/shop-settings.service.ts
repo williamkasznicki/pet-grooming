@@ -11,12 +11,12 @@ export class ShopSettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<ShopSettingResponseDto[]> {
-    const settings = await this.prisma.shopSetting.findMany({ orderBy: { key: 'asc' } });
+    const settings = await this.prisma.client.shopSetting.findMany({ orderBy: { key: 'asc' } });
     return settings.map((setting) => ShopSettingResponseDto.from(setting));
   }
 
   async findOne(key: string): Promise<ShopSettingResponseDto> {
-    const setting = await this.prisma.shopSetting.findUnique({ where: { key } });
+    const setting = await this.prisma.client.shopSetting.findUnique({ where: { key } });
     if (!setting) {
       throw new NotFoundException(ErrorMessages.SHOP_SETTING_NOT_FOUND);
     }
@@ -27,7 +27,7 @@ export class ShopSettingsService {
     const value = this.toJsonInput(dto.value);
 
     try {
-      const setting = await this.prisma.shopSetting.upsert({
+      const setting = await this.prisma.client.shopSetting.upsert({
         where: { key },
         create: { key, value },
         update: { value },

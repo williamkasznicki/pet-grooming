@@ -11,15 +11,15 @@ export class PetsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(): Promise<PetResponseDto[]> {
-    const pets = await this.prisma.pet.findMany({
-      where: { deletedAt: null },
+    const pets = await this.prisma.client.pet.findMany({
+      // deletedAt: null is applied automatically (soft-delete filter in PrismaService)
       orderBy: { createdAt: 'desc' },
     });
     return pets.map((pet) => PetResponseDto.from(pet));
   }
 
   async findOne(id: string): Promise<PetResponseDto> {
-    const pet = await this.prisma.pet.findFirst({ where: { id, deletedAt: null } });
+    const pet = await this.prisma.client.pet.findFirst({ where: { id } });
     if (!pet) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
@@ -30,7 +30,7 @@ export class PetsService {
     await this.ensureActiveSize(dto.sizeId);
 
     try {
-      const pet = await this.prisma.pet.create({
+      const pet = await this.prisma.client.pet.create({
         data: {
           ownerId: dto.ownerId,
           name: dto.name,
@@ -53,7 +53,7 @@ export class PetsService {
     }
 
     try {
-      const pet = await this.prisma.pet.update({
+      const pet = await this.prisma.client.pet.update({
         where: { id },
         data: {
           ownerId: dto.ownerId,
@@ -74,7 +74,7 @@ export class PetsService {
     await this.ensureExists(id);
 
     try {
-      const pet = await this.prisma.pet.update({
+      const pet = await this.prisma.client.pet.update({
         where: { id },
         data: { deletedAt: new Date() },
       });
@@ -85,14 +85,14 @@ export class PetsService {
   }
 
   private async ensureExists(id: string): Promise<void> {
-    const pet = await this.prisma.pet.findFirst({ where: { id, deletedAt: null }, select: { id: true } });
+    const pet = await this.prisma.client.pet.findFirst({ where: { id }, select: { id: true } });
     if (!pet) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
-    const size = await this.prisma.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
+    const size = await this.prisma.client.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
     if (!size) {
       throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }

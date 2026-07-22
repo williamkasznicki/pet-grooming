@@ -45,6 +45,10 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 - **UI foundation (respect it, don't replace it)**: shadcn/ui `base-lyra` style, neutral base color, CSS variables, Remix icons, dark mode via `theme-provider.tsx`, shared components in `client/packages/ui`.
 - Design workflow when frontend starts: `frontend-design` skill for direction (constrained to existing tokens), `design-system` for token generation/audit, `web-design-guidelines` for review, `dataviz` for admin charts.
 
+## Server conventions
+
+- See `docs/API-CONVENTIONS.md`: built-in Nest mechanisms first, centralized error messages, DTO `from()` mapping, Swagger at `/docs`, and the Prisma soft-delete global query filter.
+
 ## Backend & data
 
 - NestJS (`server/`) + **Prisma + PostgreSQL** (Docker Compose locally).
