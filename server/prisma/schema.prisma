@@ -3,8 +3,9 @@
 // Status/size/payment lookups are master-data tables (Md*), admin-editable — not enums.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs" // Nest compiles to CommonJS; default ESM output breaks node dist/main
 }
 
 datasource db {
