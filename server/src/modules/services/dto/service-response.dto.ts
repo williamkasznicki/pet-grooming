@@ -1,12 +1,22 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { Service, ServiceTier } from '../../../generated/prisma/client.js';
 
 export type ServiceWithTiers = Service & { tiers: ServiceTier[] };
 
 export class ServiceTierResponseDto {
+  @ApiProperty()
   id!: string;
+
+  @ApiProperty()
   serviceId!: string;
+
+  @ApiProperty({ description: 'MdPetSize id' })
   sizeId!: number;
+
+  @ApiProperty({ description: 'Price in THB', example: '590.00' })
   priceThb!: string;
+
+  @ApiProperty()
   durationMin!: number;
 
   static from(tier: ServiceTier): ServiceTierResponseDto {
@@ -21,12 +31,25 @@ export class ServiceTierResponseDto {
 }
 
 export class ServiceResponseDto {
+  @ApiProperty()
   id!: string;
+
+  @ApiProperty()
   name!: string;
+
+  @ApiProperty({ type: String, nullable: true })
   description!: string | null;
+
+  @ApiProperty()
   active!: boolean;
+
+  @ApiProperty({ format: 'date-time' })
   createdAt!: string;
+
+  @ApiProperty({ format: 'date-time' })
   updatedAt!: string;
+
+  @ApiProperty({ type: [ServiceTierResponseDto] })
   tiers!: ServiceTierResponseDto[];
 
   static from(service: ServiceWithTiers): ServiceResponseDto {
