@@ -1,4 +1,11 @@
-import { clampInterval, computeStaffSlots, mergeStaffSlots, overlaps, pickStaff } from './availability.logic.js';
+import {
+  clampInterval,
+  computeStaffSlots,
+  mergeIntervals,
+  mergeStaffSlots,
+  overlaps,
+  pickStaff,
+} from './availability.logic.js';
 
 const win = (startMin: number, endMin: number) => ({ startMin, endMin });
 
@@ -15,6 +22,18 @@ describe('overlaps', () => {
   it('detects overlap and respects half-open bounds', () => {
     expect(overlaps(win(540, 600), win(570, 630))).toBe(true);
     expect(overlaps(win(540, 600), win(600, 660))).toBe(false); // back-to-back is fine
+  });
+});
+
+describe('mergeIntervals', () => {
+  it('coalesces overlapping and adjacent intervals, sorted', () => {
+    expect(mergeIntervals([win(900, 960), win(540, 600), win(590, 660), win(660, 700)])).toEqual([
+      win(540, 700),
+      win(900, 960),
+    ]);
+  });
+  it('passes disjoint intervals through', () => {
+    expect(mergeIntervals([win(540, 600), win(700, 760)])).toEqual([win(540, 600), win(700, 760)]);
   });
 });
 
@@ -50,6 +69,21 @@ describe('computeStaffSlots', () => {
   it('handles multiple windows and long durations', () => {
     const split = [win(540, 720), win(780, 1020)]; // 09–12 and 13–17
     expect(computeStaffSlots(split, [], 180, 60)).toEqual([540, 780, 840]); // 3h grooms
+  });
+
+  it('handles unsorted, overlapping busy intervals (merged internally)', () => {
+    const busy = [win(840, 900), win(780, 850), win(795, 810)]; // messy overlap → 13:00–15:00
+    expect(computeStaffSlots(noon5pm, busy, 60, 30)).toEqual([720, 900, 930, 960]);
+  });
+
+  it('handles one long busy interval spanning many candidates', () => {
+    expect(computeStaffSlots(noon5pm, [win(0, 990)], 30, 30)).toEqual([990]); // only 16:30 left
+  });
+
+  it('dedupes overlapping working windows', () => {
+    expect(computeStaffSlots([win(720, 900), win(840, 1020)], [], 60, 30)).toEqual(
+      computeStaffSlots(noon5pm, [], 60, 30),
+    );
   });
 
   it('returns empty for nonsense input', () => {

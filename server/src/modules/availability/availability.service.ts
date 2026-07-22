@@ -2,13 +2,14 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { TZDate } from '@date-fns/tz';
 import { addDays, addMinutes, differenceInMinutes, isAfter, isBefore } from 'date-fns';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { now } from '../../common/utils/clock.util.js';
 import {
   MinuteInterval,
   clampInterval,
   computeStaffSlots,
   mergeStaffSlots,
 } from './availability.logic.js';
+import { AvailabilityRepository } from './availability.repository.js';
 import { AvailabilityQueryDto } from './dto/availability-query.dto.js';
 import { AvailabilityResponseDto } from './dto/availability-response.dto.js';
 
@@ -38,7 +39,7 @@ const DEFAULTS: Settings = {
  */
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly availabilityRepository: AvailabilityRepository) {}
 
   async getAvailability(query: AvailabilityQueryDto): Promise<AvailabilityResponseDto> {
     const [settings, tier] = await Promise.all([this.loadSettings(), this.loadTier(query)]);
@@ -57,46 +58,20 @@ export class AvailabilityService {
     };
 
     // Entirely past days have no availability; min-notice floors today's slots.
-    const now = new Date();
-    if (isBefore(dayEnd, now)) return emptyResponse;
-    const noticeFloor = addMinutes(now, settings.minNoticeMin);
+    const current = now();
+    if (isBefore(dayEnd, current)) return emptyResponse;
+    const noticeFloor = addMinutes(current, settings.minNoticeMin);
     const earliestStartMin = isAfter(noticeFloor, dayStart)
       ? Math.max(0, differenceInMinutes(noticeFloor, dayStart))
       : 0;
     if (earliestStartMin >= DAY_MIN) return emptyResponse;
 
-    const staff = await this.prisma.client.staffProfile.findMany({
-      where: { active: true, ...(query.staffId ? { id: query.staffId } : {}) },
-      select: {
-        id: true,
-        workingHours: { where: { weekday }, select: { startMin: true, endMin: true } },
-        timeOff: {
-          where: {
-            OR: [{ isPermanent: true }, { startsAt: { lt: dayEnd }, endsAt: { gt: dayStart } }],
-          },
-          select: { isPermanent: true, startsAt: true, endsAt: true },
-        },
-      },
-    });
+    const staff = await this.availabilityRepository.findActiveStaffForDay(query, weekday, dayStart, dayEnd);
     const staffIds = staff.map((s) => s.id);
 
     const [bookings, shopTimeOff] = await Promise.all([
-      this.prisma.client.booking.findMany({
-        where: {
-          staffId: { in: staffIds },
-          startsAt: { lt: dayEnd },
-          endsAt: { gt: dayStart },
-          status: { code: { in: BLOCKING_STATUS_CODES } },
-        },
-        select: { staffId: true, startsAt: true, endsAt: true },
-      }),
-      this.prisma.client.timeOff.findMany({
-        where: {
-          staffId: null,
-          OR: [{ isPermanent: true }, { startsAt: { lt: dayEnd }, endsAt: { gt: dayStart } }],
-        },
-        select: { isPermanent: true, startsAt: true, endsAt: true },
-      }),
+      this.availabilityRepository.findBlockingBookings(staffIds, dayStart, dayEnd, BLOCKING_STATUS_CODES),
+      this.availabilityRepository.findShopTimeOffForDay(dayStart, dayEnd),
     ]);
 
     const wholeDay: MinuteInterval = { startMin: 0, endMin: DAY_MIN };
@@ -147,14 +122,7 @@ export class AvailabilityService {
   }
 
   private async loadTier(query: AvailabilityQueryDto): Promise<{ durationMin: number }> {
-    const tier = await this.prisma.client.serviceTier.findFirst({
-      where: {
-        serviceId: query.serviceId,
-        sizeId: query.sizeId,
-        service: { active: true, deletedAt: null },
-      },
-      select: { durationMin: true },
-    });
+    const tier = await this.availabilityRepository.findActiveTier(query);
     if (!tier) {
       throw new NotFoundException(ErrorMessages.SERVICE_TIER_NOT_FOUND);
     }
@@ -162,9 +130,7 @@ export class AvailabilityService {
   }
 
   private async loadSettings(): Promise<Settings> {
-    const rows = await this.prisma.client.shopSetting.findMany({
-      where: { key: { in: ['shop.timezone', 'shop.hours', 'booking.slotStepMin', 'booking.minNoticeMin'] } },
-    });
+    const rows = await this.availabilityRepository.findAvailabilitySettings();
     const byKey = new Map(rows.map((row) => [row.key, row.value]));
 
     const hours = byKey.get('shop.hours') as { openMin?: number; closeMin?: number } | undefined;

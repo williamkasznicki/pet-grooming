@@ -1,32 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { MasterDataResponseDto } from './dto/master-data-response.dto.js';
+import { MasterDataRepository } from './master-data.repository.js';
 
 @Injectable()
 export class MasterDataService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly masterDataRepository: MasterDataRepository) {}
 
   async listPetSizes(): Promise<MasterDataResponseDto[]> {
-    const sizes = await this.prisma.client.mdPetSize.findMany({
-      where: { isActive: true },
-      orderBy: { id: 'asc' },
-    });
+    const sizes = await this.masterDataRepository.findActivePetSizes();
     return sizes.map((size) => MasterDataResponseDto.from(size));
   }
 
   async listBookingStatuses(): Promise<MasterDataResponseDto[]> {
-    const statuses = await this.prisma.client.mdBookingStatus.findMany({
-      where: { isActive: true },
-      orderBy: { id: 'asc' },
-    });
+    const statuses = await this.masterDataRepository.findActiveBookingStatuses();
     return statuses.map((status) => MasterDataResponseDto.from(status));
   }
 
   async listPaymentStatuses(): Promise<MasterDataResponseDto[]> {
-    const statuses = await this.prisma.client.mdPaymentStatus.findMany({
-      where: { isActive: true },
-      orderBy: { id: 'asc' },
-    });
+    const statuses = await this.masterDataRepository.findActivePaymentStatuses();
     return statuses.map((status) => MasterDataResponseDto.from(status));
   }
 

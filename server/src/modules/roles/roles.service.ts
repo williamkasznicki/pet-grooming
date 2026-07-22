@@ -1,25 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { PermissionsService } from '../auth/permissions.service.js';
 import { AssignRolePermissionDto } from './dto/assign-role-permission.dto.js';
 import { CreateRoleDto } from './dto/create-role.dto.js';
-import { RoleResponseDto, RoleWithPermissions } from './dto/role-response.dto.js';
+import { RoleResponseDto } from './dto/role-response.dto.js';
 import { UpdateRoleDto } from './dto/update-role.dto.js';
+import { RolesRepository, RoleWithPermissions } from './roles.repository.js';
 
 @Injectable()
 export class RolesService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly rolesRepository: RolesRepository,
     private readonly permissionsService: PermissionsService,
   ) {}
 
   async findAll(): Promise<RoleResponseDto[]> {
-    const roles = await this.prisma.client.role.findMany({
-      include: this.rolePermissionsInclude(),
-      orderBy: [{ group: 'asc' }, { name: 'asc' }],
-    });
+    const roles = await this.rolesRepository.findManyWithPermissions();
     return roles.map((role) => RoleResponseDto.from(role));
   }
 
@@ -30,13 +27,10 @@ export class RolesService {
 
   async create(dto: CreateRoleDto): Promise<RoleResponseDto> {
     try {
-      const role = await this.prisma.client.role.create({
-        data: {
-          name: dto.name,
-          group: dto.group,
-          desc: dto.desc,
-        },
-        include: this.rolePermissionsInclude(),
+      const role = await this.rolesRepository.create({
+        name: dto.name,
+        group: dto.group,
+        desc: dto.desc,
       });
       return RoleResponseDto.from(role);
     } catch (error) {
@@ -48,14 +42,10 @@ export class RolesService {
     await this.ensureRoleExists(id);
 
     try {
-      const role = await this.prisma.client.role.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          group: dto.group,
-          desc: dto.desc,
-        },
-        include: this.rolePermissionsInclude(),
+      const role = await this.rolesRepository.update(id, {
+        name: dto.name,
+        group: dto.group,
+        desc: dto.desc,
       });
       return RoleResponseDto.from(role);
     } catch (error) {
@@ -68,7 +58,7 @@ export class RolesService {
 
     try {
       // UserRole and RolePermission rows cascade from the Prisma schema relations.
-      await this.prisma.client.role.delete({ where: { id } });
+      await this.rolesRepository.delete(id);
       this.permissionsService.invalidateAll(); // every user holding this role loses its permissions
       return RoleResponseDto.from(existingRole);
     } catch (error) {
@@ -81,12 +71,7 @@ export class RolesService {
     await this.ensurePermissionExists(dto.permissionId);
 
     try {
-      await this.prisma.client.rolePermission.create({
-        data: {
-          roleId: id,
-          permissionId: dto.permissionId,
-        },
-      });
+      await this.rolesRepository.assignPermission(id, dto.permissionId);
       this.permissionsService.invalidateAll(); // affects every user holding this role
       return this.findOne(id);
     } catch (error) {
@@ -98,7 +83,7 @@ export class RolesService {
     await this.ensureRoleExists(id);
 
     try {
-      await this.prisma.client.rolePermission.delete({ where: { roleId_permissionId: { roleId: id, permissionId } } });
+      await this.rolesRepository.unassignPermission(id, permissionId);
       this.permissionsService.invalidateAll(); // affects every user holding this role
       return this.findOne(id);
     } catch (error) {
@@ -106,15 +91,8 @@ export class RolesService {
     }
   }
 
-  private rolePermissionsInclude() {
-    return { rolePermissions: { include: { permission: true }, orderBy: { permission: { name: 'asc' as const } } } };
-  }
-
   private async findExistingRole(id: number): Promise<RoleWithPermissions> {
-    const role = await this.prisma.client.role.findFirst({
-      where: { id },
-      include: this.rolePermissionsInclude(),
-    });
+    const role = await this.rolesRepository.findByIdWithPermissions(id);
     if (!role) {
       throw new NotFoundException(ErrorMessages.ROLE_NOT_FOUND);
     }
@@ -122,15 +100,13 @@ export class RolesService {
   }
 
   private async ensureRoleExists(id: number): Promise<void> {
-    const role = await this.prisma.client.role.findFirst({ where: { id }, select: { id: true } });
-    if (!role) {
+    if (!(await this.rolesRepository.roleExists(id))) {
       throw new NotFoundException(ErrorMessages.ROLE_NOT_FOUND);
     }
   }
 
   private async ensurePermissionExists(permissionId: number): Promise<void> {
-    const permission = await this.prisma.client.permission.findFirst({ where: { id: permissionId }, select: { id: true } });
-    if (!permission) {
+    if (!(await this.rolesRepository.permissionExists(permissionId))) {
       throw new NotFoundException(ErrorMessages.PERMISSION_NOT_FOUND);
     }
   }

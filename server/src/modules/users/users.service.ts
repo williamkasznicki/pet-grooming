@@ -2,23 +2,20 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { PermissionsService } from '../auth/permissions.service.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { AssignUserRoleDto } from './dto/assign-user-role.dto.js';
 import { UpdateUserDto } from './dto/update-user.dto.js';
-import { UserResponseDto, UserWithRoles } from './dto/user-response.dto.js';
+import { UserResponseDto } from './dto/user-response.dto.js';
+import { UsersRepository, UserWithRoles } from './users.repository.js';
 
 @Injectable()
 export class UsersService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly usersRepository: UsersRepository,
     private readonly permissionsService: PermissionsService,
   ) {}
 
   async findAll(): Promise<UserResponseDto[]> {
-    const users = await this.prisma.client.user.findMany({
-      include: this.userRolesInclude(),
-      orderBy: { createdAt: 'desc' },
-    });
+    const users = await this.usersRepository.findManyWithRoles();
     return users.map((user) => UserResponseDto.from(user));
   }
 
@@ -31,13 +28,9 @@ export class UsersService {
     await this.ensureUserExists(id);
 
     try {
-      const user = await this.prisma.client.user.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          phone: dto.phone,
-        },
-        include: this.userRolesInclude(),
+      const user = await this.usersRepository.update(id, {
+        name: dto.name,
+        phone: dto.phone,
       });
       return UserResponseDto.from(user);
     } catch (error) {
@@ -49,11 +42,7 @@ export class UsersService {
     await this.ensureUserExists(id);
 
     try {
-      const user = await this.prisma.client.user.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-        include: this.userRolesInclude(),
-      });
+      const user = await this.usersRepository.softDelete(id);
       return UserResponseDto.from(user);
     } catch (error) {
       translatePrismaError(error);
@@ -65,12 +54,7 @@ export class UsersService {
     await this.ensureRoleExists(dto.roleId);
 
     try {
-      await this.prisma.client.userRole.create({
-        data: {
-          userId: id,
-          roleId: dto.roleId,
-        },
-      });
+      await this.usersRepository.assignRole(id, dto.roleId);
       this.permissionsService.invalidate(id);
       return this.findOne(id);
     } catch (error) {
@@ -82,7 +66,7 @@ export class UsersService {
     await this.ensureUserExists(id);
 
     try {
-      await this.prisma.client.userRole.delete({ where: { userId_roleId: { userId: id, roleId } } });
+      await this.usersRepository.unassignRole(id, roleId);
       this.permissionsService.invalidate(id);
       return this.findOne(id);
     } catch (error) {
@@ -90,15 +74,8 @@ export class UsersService {
     }
   }
 
-  private userRolesInclude() {
-    return { userRoles: { include: { role: true }, orderBy: { role: { name: 'asc' as const } } } };
-  }
-
   private async findExistingUser(id: string): Promise<UserWithRoles> {
-    const user = await this.prisma.client.user.findFirst({
-      where: { id },
-      include: this.userRolesInclude(),
-    });
+    const user = await this.usersRepository.findByIdWithRoles(id);
     if (!user) {
       throw new NotFoundException(ErrorMessages.USER_NOT_FOUND);
     }
@@ -106,15 +83,13 @@ export class UsersService {
   }
 
   private async ensureUserExists(id: string): Promise<void> {
-    const user = await this.prisma.client.user.findFirst({ where: { id }, select: { id: true } });
-    if (!user) {
+    if (!(await this.usersRepository.userExists(id))) {
       throw new NotFoundException(ErrorMessages.USER_NOT_FOUND);
     }
   }
 
   private async ensureRoleExists(roleId: number): Promise<void> {
-    const role = await this.prisma.client.role.findFirst({ where: { id: roleId }, select: { id: true } });
-    if (!role) {
+    if (!(await this.usersRepository.roleExists(roleId))) {
       throw new NotFoundException(ErrorMessages.ROLE_NOT_FOUND);
     }
   }

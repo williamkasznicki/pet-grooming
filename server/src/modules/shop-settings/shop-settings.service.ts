@@ -1,22 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, ShopSetting } from '../../generated/prisma/client.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { ShopSettingResponseDto } from './dto/shop-setting-response.dto.js';
 import { UpdateShopSettingDto } from './dto/update-shop-setting.dto.js';
+import { ShopSettingsRepository } from './shop-settings.repository.js';
 
 @Injectable()
 export class ShopSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly shopSettingsRepository: ShopSettingsRepository) {}
 
   async findAll(): Promise<ShopSettingResponseDto[]> {
-    const settings = await this.prisma.client.shopSetting.findMany({ orderBy: { key: 'asc' } });
+    const settings = await this.shopSettingsRepository.findManyOrdered();
     return settings.map((setting) => ShopSettingResponseDto.from(setting));
   }
 
   async findOne(key: string): Promise<ShopSettingResponseDto> {
-    const setting = await this.prisma.client.shopSetting.findUnique({ where: { key } });
+    const setting = await this.shopSettingsRepository.findByKey(key);
     if (!setting) {
       throw new NotFoundException(ErrorMessages.SHOP_SETTING_NOT_FOUND);
     }
@@ -27,11 +27,7 @@ export class ShopSettingsService {
     const value = this.toJsonInput(dto.value);
 
     try {
-      const setting = await this.prisma.client.shopSetting.upsert({
-        where: { key },
-        create: { key, value },
-        update: { value },
-      });
+      const setting = await this.shopSettingsRepository.upsertValue(key, value);
       return ShopSettingResponseDto.from(setting);
     } catch (error) {
       translatePrismaError(error);
@@ -50,13 +46,5 @@ export class ShopSettingsService {
     }
 
     return value as Prisma.InputJsonValue;
-  }
-
-  private toResponse(setting: ShopSetting): ShopSettingResponseDto {
-    return {
-      key: setting.key,
-      value: setting.value,
-      updatedAt: setting.updatedAt.toISOString(),
-    };
   }
 }

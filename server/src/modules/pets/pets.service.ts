@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuthUser } from '../../common/types/auth.types.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
 import { PetResponseDto } from './dto/pet-response.dto.js';
 import { UpdatePetDto } from './dto/update-pet.dto.js';
+import { OwnerScope, PetsRepository } from './pets.repository.js';
 
 /**
  * Row-level scoping (docs/RBAC.md): users act on their own pets; the "*"
@@ -13,18 +13,15 @@ import { UpdatePetDto } from './dto/update-pet.dto.js';
  */
 @Injectable()
 export class PetsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly petsRepository: PetsRepository) {}
 
   async findAll(user: AuthUser): Promise<PetResponseDto[]> {
-    const pets = await this.prisma.client.pet.findMany({
-      where: this.ownerScope(user),
-      orderBy: { createdAt: 'desc' },
-    });
+    const pets = await this.petsRepository.findManyScoped(this.ownerScope(user));
     return pets.map((pet) => PetResponseDto.from(pet));
   }
 
   async findOne(id: string, user: AuthUser): Promise<PetResponseDto> {
-    const pet = await this.prisma.client.pet.findFirst({ where: { id, ...this.ownerScope(user) } });
+    const pet = await this.petsRepository.findByIdScoped(id, this.ownerScope(user));
     if (!pet) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
@@ -35,15 +32,13 @@ export class PetsService {
     await this.ensureActiveSize(dto.sizeId);
 
     try {
-      const pet = await this.prisma.client.pet.create({
-        data: {
-          ownerId: user.id,
-          name: dto.name,
-          breed: dto.breed,
-          sizeId: dto.sizeId,
-          birthDate: dto.birthDate,
-          notes: dto.notes,
-        },
+      const pet = await this.petsRepository.create({
+        ownerId: user.id,
+        name: dto.name,
+        breed: dto.breed,
+        sizeId: dto.sizeId,
+        birthDate: dto.birthDate,
+        notes: dto.notes,
       });
       return PetResponseDto.from(pet);
     } catch (error) {
@@ -58,15 +53,12 @@ export class PetsService {
     }
 
     try {
-      const pet = await this.prisma.client.pet.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          breed: dto.breed,
-          sizeId: dto.sizeId,
-          birthDate: dto.birthDate,
-          notes: dto.notes,
-        },
+      const pet = await this.petsRepository.update(id, {
+        name: dto.name,
+        breed: dto.breed,
+        sizeId: dto.sizeId,
+        birthDate: dto.birthDate,
+        notes: dto.notes,
       });
       return PetResponseDto.from(pet);
     } catch (error) {
@@ -78,36 +70,25 @@ export class PetsService {
     await this.ensureExists(id, user);
 
     try {
-      const pet = await this.prisma.client.pet.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-      });
+      const pet = await this.petsRepository.softDelete(id);
       return PetResponseDto.from(pet);
     } catch (error) {
       translatePrismaError(error);
     }
   }
 
-  private ownerScope(user: AuthUser): { ownerId?: string } {
+  private ownerScope(user: AuthUser): OwnerScope {
     return user.permissions.has('*') ? {} : { ownerId: user.id };
   }
 
   private async ensureExists(id: string, user: AuthUser): Promise<void> {
-    const pet = await this.prisma.client.pet.findFirst({
-      where: { id, ...this.ownerScope(user) },
-      select: { id: true },
-    });
-    if (!pet) {
+    if (!(await this.petsRepository.existsScoped(id, this.ownerScope(user)))) {
       throw new NotFoundException(ErrorMessages.PET_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
-    const size = await this.prisma.client.mdPetSize.findFirst({
-      where: { id: sizeId, isActive: true },
-      select: { id: true },
-    });
-    if (!size) {
+    if (!(await this.petsRepository.activeSizeExists(sizeId))) {
       throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }
   }

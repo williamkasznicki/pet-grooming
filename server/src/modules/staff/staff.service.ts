@@ -3,7 +3,6 @@ import { isBefore } from 'date-fns';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateStaffDto } from './dto/create-staff.dto.js';
 import { CreateTimeOffDto } from './dto/create-time-off.dto.js';
 import { StaffPublicDto } from './dto/staff-public.dto.js';
@@ -11,25 +10,19 @@ import { StaffResponseDto, StaffWithDetails, WorkingHoursResponseDto } from './d
 import { TimeOffResponseDto } from './dto/time-off-response.dto.js';
 import { UpdateStaffDto } from './dto/update-staff.dto.js';
 import { ReplaceWorkingHoursDto, WorkingHoursEntryDto } from './dto/upsert-working-hours.dto.js';
+import { StaffRepository } from './staff.repository.js';
 
 @Injectable()
 export class StaffService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly staffRepository: StaffRepository) {}
 
   async findPublic(): Promise<StaffPublicDto[]> {
-    const staff = await this.prisma.client.staffProfile.findMany({
-      where: { active: true },
-      select: { id: true, displayName: true, user: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const staff = await this.staffRepository.findManyPublic();
     return staff.map((profile) => StaffPublicDto.from(profile));
   }
 
   async findAdmin(): Promise<StaffResponseDto[]> {
-    const staff = await this.prisma.client.staffProfile.findMany({
-      include: this.staffDetailsInclude(),
-      orderBy: { createdAt: 'desc' },
-    });
+    const staff = await this.staffRepository.findManyAdmin();
     return staff.map((profile) => StaffResponseDto.from(profile));
   }
 
@@ -37,13 +30,10 @@ export class StaffService {
     await this.ensureUserExists(dto.userId);
 
     try {
-      const staff = await this.prisma.client.staffProfile.create({
-        data: {
-          userId: dto.userId,
-          displayName: dto.displayName,
-          bio: dto.bio,
-        },
-        include: this.staffDetailsInclude(),
+      const staff = await this.staffRepository.create({
+        userId: dto.userId,
+        displayName: dto.displayName,
+        bio: dto.bio,
       });
       return StaffResponseDto.from(staff);
     } catch (error) {
@@ -60,14 +50,10 @@ export class StaffService {
     await this.ensureStaffExists(id);
 
     try {
-      const staff = await this.prisma.client.staffProfile.update({
-        where: { id },
-        data: {
-          displayName: dto.displayName,
-          bio: dto.bio,
-          active: dto.active,
-        },
-        include: this.staffDetailsInclude(),
+      const staff = await this.staffRepository.update(id, {
+        displayName: dto.displayName,
+        bio: dto.bio,
+        active: dto.active,
       });
       return StaffResponseDto.from(staff);
     } catch (error) {
@@ -80,25 +66,7 @@ export class StaffService {
     this.validateWorkingHours(dto.entries);
 
     try {
-      const writes = [this.prisma.client.workingHours.deleteMany({ where: { staffId: id } })];
-      if (dto.entries.length > 0) {
-        writes.push(
-          this.prisma.client.workingHours.createMany({
-            data: dto.entries.map((entry) => ({
-              staffId: id,
-              weekday: entry.weekday,
-              startMin: entry.startMin,
-              endMin: entry.endMin,
-            })),
-          }),
-        );
-      }
-      await this.prisma.client.$transaction(writes);
-
-      const entries = await this.prisma.client.workingHours.findMany({
-        where: { staffId: id },
-        orderBy: [{ weekday: 'asc' }, { startMin: 'asc' }],
-      });
+      const entries = await this.staffRepository.replaceWeeklyHours(id, dto.entries);
       return entries.map((entry) => WorkingHoursResponseDto.from(entry));
     } catch (error) {
       translatePrismaError(error);
@@ -111,13 +79,13 @@ export class StaffService {
   }
 
   async removeStaffTimeOff(staffId: string, timeOffId: string): Promise<TimeOffResponseDto> {
-    const timeOff = await this.prisma.client.timeOff.findFirst({ where: { id: timeOffId, staffId } });
+    const timeOff = await this.staffRepository.findStaffTimeOffById(staffId, timeOffId);
     if (!timeOff) {
       throw new NotFoundException(ErrorMessages.TIME_OFF_NOT_FOUND);
     }
 
     try {
-      const deleted = await this.prisma.client.timeOff.delete({ where: { id: timeOffId } });
+      const deleted = await this.staffRepository.deleteTimeOff(timeOffId);
       return TimeOffResponseDto.from(deleted);
     } catch (error) {
       translatePrismaError(error);
@@ -125,10 +93,7 @@ export class StaffService {
   }
 
   async findShopTimeOff(): Promise<TimeOffResponseDto[]> {
-    const timeOff = await this.prisma.client.timeOff.findMany({
-      where: { staffId: null },
-      orderBy: [{ isPermanent: 'desc' }, { startsAt: 'asc' }, { createdAt: 'desc' }],
-    });
+    const timeOff = await this.staffRepository.findShopTimeOff();
     return timeOff.map((entry) => TimeOffResponseDto.from(entry));
   }
 
@@ -137,13 +102,13 @@ export class StaffService {
   }
 
   async removeShopTimeOff(timeOffId: string): Promise<TimeOffResponseDto> {
-    const timeOff = await this.prisma.client.timeOff.findFirst({ where: { id: timeOffId, staffId: null } });
+    const timeOff = await this.staffRepository.findShopTimeOffById(timeOffId);
     if (!timeOff) {
       throw new NotFoundException(ErrorMessages.TIME_OFF_NOT_FOUND);
     }
 
     try {
-      const deleted = await this.prisma.client.timeOff.delete({ where: { id: timeOffId } });
+      const deleted = await this.staffRepository.deleteTimeOff(timeOffId);
       return TimeOffResponseDto.from(deleted);
     } catch (error) {
       translatePrismaError(error);
@@ -154,14 +119,12 @@ export class StaffService {
     this.validateTimeOffRange(dto);
 
     try {
-      const timeOff = await this.prisma.client.timeOff.create({
-        data: {
-          staffId,
-          isPermanent: dto.isPermanent ?? false,
-          startsAt: dto.startsAt,
-          endsAt: dto.endsAt,
-          reason: dto.reason,
-        },
+      const timeOff = await this.staffRepository.createTimeOff({
+        staffId,
+        isPermanent: dto.isPermanent ?? false,
+        startsAt: dto.startsAt,
+        endsAt: dto.endsAt,
+        reason: dto.reason,
       });
       return TimeOffResponseDto.from(timeOff);
     } catch (error) {
@@ -169,30 +132,8 @@ export class StaffService {
     }
   }
 
-  private staffDetailsInclude() {
-    return {
-      user: { select: { name: true, email: true } },
-      workingHours: { orderBy: [{ weekday: 'asc' as const }, { startMin: 'asc' as const }] },
-    };
-  }
-
-  private staffDetailWithTimeOffInclude() {
-    return {
-      ...this.staffDetailsInclude(),
-      timeOff: {
-        where: {
-          OR: [{ isPermanent: true }, { endsAt: { gte: new Date() } }],
-        },
-        orderBy: [{ isPermanent: 'desc' as const }, { startsAt: 'asc' as const }, { createdAt: 'desc' as const }],
-      },
-    };
-  }
-
   private async findExistingStaff(id: string, withTimeOff = false): Promise<StaffWithDetails> {
-    const staff = await this.prisma.client.staffProfile.findFirst({
-      where: { id },
-      include: withTimeOff ? this.staffDetailWithTimeOffInclude() : this.staffDetailsInclude(),
-    });
+    const staff = await this.staffRepository.findByIdWithDetails(id, withTimeOff);
     if (!staff) {
       throw new NotFoundException(ErrorMessages.STAFF_NOT_FOUND);
     }
@@ -200,15 +141,13 @@ export class StaffService {
   }
 
   private async ensureStaffExists(id: string): Promise<void> {
-    const staff = await this.prisma.client.staffProfile.findFirst({ where: { id }, select: { id: true } });
-    if (!staff) {
+    if (!(await this.staffRepository.staffExists(id))) {
       throw new NotFoundException(ErrorMessages.STAFF_NOT_FOUND);
     }
   }
 
   private async ensureUserExists(userId: string): Promise<void> {
-    const user = await this.prisma.client.user.findFirst({ where: { id: userId }, select: { id: true } });
-    if (!user) {
+    if (!(await this.staffRepository.userExists(userId))) {
       throw new NotFoundException(ErrorMessages.USER_NOT_FOUND);
     }
   }

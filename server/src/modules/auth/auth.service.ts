@@ -2,10 +2,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { add, isBefore, type Duration } from 'date-fns';
+import { now } from '../../common/utils/clock.util.js';
 import { hashPassword, verifyPassword } from '../../common/utils/password.util.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuthRepository, AuthUserRecord } from './auth.repository.js';
 import { AuthResponseDto, AuthUserDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -24,8 +25,8 @@ function ttlToDuration ( ttl: string ): Duration {
 
 /** date-fns Duration → whole seconds (for JWT expiresIn). */
 function durationToSeconds ( duration: Duration ): number {
-  const now = new Date();
-  return Math.floor( ( add( now, duration ).getTime() - now.getTime() ) / 1_000 );
+  const anchor = now();
+  return Math.floor( ( add( anchor, duration ).getTime() - anchor.getTime() ) / 1_000 );
 }
 
 function sha256 ( value: string ): string {
@@ -35,7 +36,7 @@ function sha256 ( value: string ): string {
 @Injectable()
 export class AuthService {
   constructor (
-    private readonly prisma: PrismaService,
+    private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly permissionsService: PermissionsService,
   ) { }
@@ -44,16 +45,15 @@ export class AuthService {
     const passwordHash = await hashPassword( dto.password );
 
     try {
-      const user = await this.prisma.client.user.create( {
-        data: {
+      const user = await this.authRepository.createUserWithRole(
+        {
           email: dto.email.toLowerCase(),
           passwordHash,
           name: dto.name,
           phone: dto.phone,
-          userRoles: { create: { role: { connect: { name: DEFAULT_ROLE } } } },
         },
-        select: { id: true, email: true, name: true },
-      } );
+        DEFAULT_ROLE,
+      );
       return this.buildAuthResponse( user );
     } catch ( error ) {
       // P2002 on email → friendlier message than the generic conflict text
@@ -65,10 +65,7 @@ export class AuthService {
   }
 
   async login ( dto: LoginDto ): Promise<AuthResponseDto> {
-    const user = await this.prisma.client.user.findFirst( {
-      where: { email: dto.email.toLowerCase() },
-      select: { id: true, email: true, name: true, passwordHash: true },
-    } );
+    const user = await this.authRepository.findUserByEmailWithHash( dto.email.toLowerCase() );
     if ( !user || !( await verifyPassword( user.passwordHash, dto.password ) ) ) {
       throw new UnauthorizedException( ErrorMessages.INVALID_CREDENTIALS );
     }
@@ -77,35 +74,24 @@ export class AuthService {
 
   /** Rotates the refresh token: the presented token is revoked and a new pair is issued. */
   async refresh ( refreshToken: string ): Promise<AuthResponseDto> {
-    const tokenHash = sha256( refreshToken );
-    const stored = await this.prisma.client.refreshToken.findFirst( {
-      where: { tokenHash },
-      select: { id: true, revokedAt: true, expiresAt: true, user: { select: { id: true, email: true, name: true } } },
-    } );
-    if ( !stored || stored.revokedAt || isBefore( stored.expiresAt, new Date() ) ) {
+    const stored = await this.authRepository.findRefreshTokenByHash( sha256( refreshToken ) );
+    if ( !stored || stored.revokedAt || isBefore( stored.expiresAt, now() ) ) {
       throw new UnauthorizedException( ErrorMessages.INVALID_TOKEN );
     }
 
-    await this.prisma.client.refreshToken.update( {
-      where: { id: stored.id },
-      data: { revokedAt: new Date() },
-    } );
+    await this.authRepository.revokeRefreshTokenById( stored.id );
     return this.buildAuthResponse( stored.user );
   }
 
   async logout ( refreshToken: string ): Promise<void> {
-    // Idempotent: revoking an unknown/already-revoked token is a no-op.
-    await this.prisma.client.refreshToken.updateMany( {
-      where: { tokenHash: sha256( refreshToken ), revokedAt: null },
-      data: { revokedAt: new Date() },
-    } );
+    await this.authRepository.revokeActiveRefreshTokenByHash( sha256( refreshToken ) );
   }
 
   async me ( userId: string ): Promise<AuthUserDto> {
-    const user = await this.prisma.client.user.findFirstOrThrow( {
-      where: { id: userId },
-      select: { id: true, email: true, name: true },
-    } );
+    const user = await this.authRepository.findUserById( userId );
+    if ( !user ) {
+      throw new UnauthorizedException( ErrorMessages.INVALID_TOKEN );
+    }
     return this.toAuthUser( user );
   }
 
@@ -119,30 +105,25 @@ export class AuthService {
     );
 
     const refreshToken = randomBytes( 48 ).toString( 'base64url' );
-    await this.prisma.client.refreshToken.create( {
-      data: {
-        userId: user.id,
-        tokenHash: sha256( refreshToken ),
-        expiresAt: add( new Date(), ttlToDuration( process.env.JWT_REFRESH_TTL ?? '30d' ) ),
-      },
-    } );
+    await this.authRepository.createRefreshToken(
+      user.id,
+      sha256( refreshToken ),
+      add( now(), ttlToDuration( process.env.JWT_REFRESH_TTL ?? '30d' ) ),
+    );
 
     return { accessToken, refreshToken, user: await this.toAuthUser( user ) };
   }
 
-  private async toAuthUser ( user: { id: string; email: string; name: string } ): Promise<AuthUserDto> {
-    const [ userRoles, permissions ] = await Promise.all( [
-      this.prisma.client.userRole.findMany( {
-        where: { userId: user.id },
-        select: { role: { select: { name: true } } },
-      } ),
+  private async toAuthUser ( user: AuthUserRecord ): Promise<AuthUserDto> {
+    const [ roles, permissions ] = await Promise.all( [
+      this.authRepository.findUserRoleNames( user.id ),
       this.permissionsService.getPermissions( user.id ),
     ] );
     return {
       id: user.id,
       email: user.email,
       name: user.name,
-      roles: userRoles.map( ( ur ) => ur.role.name ),
+      roles,
       permissions: [ ...permissions ],
     };
   }

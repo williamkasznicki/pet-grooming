@@ -1,26 +1,19 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
-import { Prisma } from '../../generated/prisma/client.js';
 import { CreateServiceDto } from './dto/create-service.dto.js';
 import { CreateServiceTierDto } from './dto/create-service-tier.dto.js';
 import { ServiceResponseDto, ServiceTierResponseDto } from './dto/service-response.dto.js';
 import { UpdateServiceDto } from './dto/update-service.dto.js';
 import { UpdateServiceTierDto } from './dto/update-service-tier.dto.js';
-
-type ServiceWithTiers = Prisma.ServiceGetPayload<{ include: { tiers: true } }>;
+import { ServiceWithTiers, ServicesRepository } from './services.repository.js';
 
 @Injectable()
 export class ServicesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly servicesRepository: ServicesRepository) {}
 
   async findAll(): Promise<ServiceResponseDto[]> {
-    const services = await this.prisma.client.service.findMany({
-      // deletedAt: null is applied automatically (soft-delete filter in PrismaService)
-      include: { tiers: { orderBy: { sizeId: 'asc' } } },
-      orderBy: { createdAt: 'desc' },
-    });
+    const services = await this.servicesRepository.findManyWithTiers();
     return services.map((service) => ServiceResponseDto.from(service));
   }
 
@@ -31,13 +24,10 @@ export class ServicesService {
 
   async create(dto: CreateServiceDto): Promise<ServiceResponseDto> {
     try {
-      const service = await this.prisma.client.service.create({
-        data: {
-          name: dto.name,
-          description: dto.description,
-          active: dto.active,
-        },
-        include: { tiers: true },
+      const service = await this.servicesRepository.create({
+        name: dto.name,
+        description: dto.description,
+        active: dto.active,
       });
       return ServiceResponseDto.from(service);
     } catch (error) {
@@ -49,14 +39,10 @@ export class ServicesService {
     await this.ensureServiceExists(id);
 
     try {
-      const service = await this.prisma.client.service.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          description: dto.description,
-          active: dto.active,
-        },
-        include: { tiers: { orderBy: { sizeId: 'asc' } } },
+      const service = await this.servicesRepository.update(id, {
+        name: dto.name,
+        description: dto.description,
+        active: dto.active,
       });
       return ServiceResponseDto.from(service);
     } catch (error) {
@@ -68,11 +54,7 @@ export class ServicesService {
     await this.ensureServiceExists(id);
 
     try {
-      const service = await this.prisma.client.service.update({
-        where: { id },
-        data: { deletedAt: new Date(), active: false },
-        include: { tiers: { orderBy: { sizeId: 'asc' } } },
-      });
+      const service = await this.servicesRepository.softDelete(id);
       return ServiceResponseDto.from(service);
     } catch (error) {
       translatePrismaError(error);
@@ -84,13 +66,11 @@ export class ServicesService {
     await this.ensureActiveSize(dto.sizeId);
 
     try {
-      const tier = await this.prisma.client.serviceTier.create({
-        data: {
-          serviceId,
-          sizeId: dto.sizeId,
-          priceThb: dto.priceThb,
-          durationMin: dto.durationMin,
-        },
+      const tier = await this.servicesRepository.createTier({
+        serviceId,
+        sizeId: dto.sizeId,
+        priceThb: dto.priceThb,
+        durationMin: dto.durationMin,
       });
       return ServiceTierResponseDto.from(tier);
     } catch (error) {
@@ -106,13 +86,10 @@ export class ServicesService {
     }
 
     try {
-      const tier = await this.prisma.client.serviceTier.update({
-        where: { id: tierId },
-        data: {
-          sizeId: dto.sizeId,
-          priceThb: dto.priceThb,
-          durationMin: dto.durationMin,
-        },
+      const tier = await this.servicesRepository.updateTier(tierId, {
+        sizeId: dto.sizeId,
+        priceThb: dto.priceThb,
+        durationMin: dto.durationMin,
       });
       return ServiceTierResponseDto.from(tier);
     } catch (error) {
@@ -125,7 +102,7 @@ export class ServicesService {
     await this.ensureTierBelongsToService(serviceId, tierId);
 
     try {
-      const tier = await this.prisma.client.serviceTier.delete({ where: { id: tierId } });
+      const tier = await this.servicesRepository.deleteTier(tierId);
       return ServiceTierResponseDto.from(tier);
     } catch (error) {
       translatePrismaError(error);
@@ -133,10 +110,7 @@ export class ServicesService {
   }
 
   private async findExistingService(id: string): Promise<ServiceWithTiers> {
-    const service = await this.prisma.client.service.findFirst({
-      where: { id },
-      include: { tiers: { orderBy: { sizeId: 'asc' } } },
-    });
+    const service = await this.servicesRepository.findByIdWithTiers(id);
     if (!service) {
       throw new NotFoundException(ErrorMessages.SERVICE_NOT_FOUND);
     }
@@ -144,22 +118,19 @@ export class ServicesService {
   }
 
   private async ensureServiceExists(id: string): Promise<void> {
-    const service = await this.prisma.client.service.findFirst({ where: { id }, select: { id: true } });
-    if (!service) {
+    if (!(await this.servicesRepository.serviceExists(id))) {
       throw new NotFoundException(ErrorMessages.SERVICE_NOT_FOUND);
     }
   }
 
   private async ensureTierBelongsToService(serviceId: string, tierId: string): Promise<void> {
-    const tier = await this.prisma.client.serviceTier.findFirst({ where: { id: tierId, serviceId }, select: { id: true } });
-    if (!tier) {
+    if (!(await this.servicesRepository.tierBelongsToService(serviceId, tierId))) {
       throw new NotFoundException(ErrorMessages.SERVICE_TIER_NOT_FOUND);
     }
   }
 
   private async ensureActiveSize(sizeId: number): Promise<void> {
-    const size = await this.prisma.client.mdPetSize.findFirst({ where: { id: sizeId, isActive: true }, select: { id: true } });
-    if (!size) {
+    if (!(await this.servicesRepository.activeSizeExists(sizeId))) {
       throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
     }
   }

@@ -30,9 +30,16 @@ Rules for `server/` code. Built-in NestJS mechanisms first — custom code only 
 - Adding a new soft-deletable model = add `deletedAt DateTime?` in schema **and** its name to `SOFT_DELETE_MODELS`.
 - `isActive` (master data, services) is **not** auto-filtered on purpose: admin screens must list inactive rows to re-enable them. Client-facing queries filter `isActive: true` explicitly.
 
+## Layering: controller → service → repository
+
+- Each module has a `<module>.repository.ts` that owns **all** `prisma.client` access behind domain-named methods (reference: `src/modules/pets/pets.repository.ts`). Repositories return Prisma entities and raw Prisma errors — no HTTP exceptions, no DTOs, no `ErrorMessages`.
+- Services inject the repository (never `PrismaService`) and keep validation, scoping, error translation, and DTO `from()` mapping.
+- Multi-step writes (`$transaction`) live inside one repository method.
+
 ## Dates & times
 
-- All date math via **date-fns** (+ `@date-fns/tz`) — no manual `Date` arithmetic (`getTime()` offsets, etc.).
+- All date math via **date-fns** (+ `@date-fns/tz`) — no manual `Date` arithmetic (`getTime()` offsets, comparisons with `<`/`>`).
+- The current time is read ONLY via `now()` from `src/common/utils/clock.util.ts` — never bare `new Date()`. One seam to mock in tests. (`new Date(value)` for parsing a known value is fine.)
 - Store UTC; interpret shop-local values (working hours, slots) in the shop timezone from settings (`shop.timezone`). See docs/AUTH.md → Date/time policy.
 
 ## Passwords

@@ -21,8 +21,29 @@ export function overlaps(a: MinuteInterval, b: MinuteInterval): boolean {
   return a.startMin < b.endMin && b.startMin < a.endMin;
 }
 
+/** Sort + coalesce overlapping/adjacent intervals: O(n log n), output sorted + disjoint. */
+export function mergeIntervals(intervals: MinuteInterval[]): MinuteInterval[] {
+  if (intervals.length <= 1) return [...intervals];
+  const sorted = [...intervals].sort((a, b) => a.startMin - b.startMin);
+  const merged: MinuteInterval[] = [{ ...sorted[0] }];
+  for (let i = 1; i < sorted.length; i++) {
+    const last = merged[merged.length - 1];
+    if (sorted[i].startMin <= last.endMin) {
+      last.endMin = Math.max(last.endMin, sorted[i].endMin);
+    } else {
+      merged.push({ ...sorted[i] });
+    }
+  }
+  return merged;
+}
+
 /**
  * Slot starts for ONE staff member.
+ *
+ * Complexity: O(W log W + B log B + S) — windows and busy intervals are sorted
+ * and coalesced once, then a single forward pointer walks the disjoint busy
+ * list while candidates advance monotonically. No per-candidate rescans; S
+ * (the emitted candidate count) is a lower bound for any correct algorithm.
  *
  * @param workingWindows admin-set windows for the weekday, already clamped to shop hours
  * @param busy bookings + time-off for the day, as minute intervals
@@ -40,21 +61,29 @@ export function computeStaffSlots(
 ): number[] {
   if (durationMin <= 0 || stepMin <= 0) return [];
 
+  // Merging windows also dedupes/sorts them, so emitted slots are sorted + unique by construction.
+  const windows = mergeIntervals(workingWindows);
+  const mergedBusy = mergeIntervals(busy);
+
   const slots: number[] = [];
-  for (const window of workingWindows) {
+  let busyIdx = 0; // monotonic across windows — both lists are sorted
+  for (const window of windows) {
     // Align the first candidate to the global step grid (00:00-based), not the window start,
     // so 09:10–17:00 with a 30-min step still yields 09:30, 10:00, … not 09:10, 09:40.
     let start = Math.max(window.startMin, earliestStartMin);
     start = Math.ceil(start / stepMin) * stepMin;
 
     for (; start + durationMin <= window.endMin; start += stepMin) {
-      const candidate: MinuteInterval = { startMin: start, endMin: start + durationMin };
-      if (!busy.some((b) => overlaps(candidate, b))) {
+      const candidateEnd = start + durationMin;
+      // Advance past busy intervals that end at/before this candidate's start.
+      while (busyIdx < mergedBusy.length && mergedBusy[busyIdx].endMin <= start) busyIdx++;
+      // Disjoint + sorted ⇒ only the current busy interval can overlap the candidate.
+      if (busyIdx >= mergedBusy.length || mergedBusy[busyIdx].startMin >= candidateEnd) {
         slots.push(start);
       }
     }
   }
-  return [...new Set(slots)].sort((a, b) => a - b);
+  return slots;
 }
 
 /** Merge per-staff slot lists into { slotStart → staffIds } (sorted by slot). */

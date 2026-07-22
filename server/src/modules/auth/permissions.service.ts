@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { addMilliseconds, isAfter } from 'date-fns';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { now } from '../../common/utils/clock.util.js';
+import { AuthRepository } from './auth.repository.js';
 
 type CacheEntry = { permissions: ReadonlySet<string>; expiresAt: Date };
 
@@ -14,29 +15,16 @@ export class PermissionsService {
   private static readonly CACHE_TTL_MS = 60_000;
   private readonly cache = new Map<string, CacheEntry>();
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly authRepository: AuthRepository) {}
 
   async getPermissions(userId: string): Promise<ReadonlySet<string>> {
     const cached = this.cache.get(userId);
-    if (cached && isAfter(cached.expiresAt, new Date())) {
+    if (cached && isAfter(cached.expiresAt, now())) {
       return cached.permissions;
     }
 
-    const userRoles = await this.prisma.client.userRole.findMany({
-      where: { userId },
-      select: {
-        role: {
-          select: {
-            rolePermissions: { select: { permission: { select: { name: true } } } },
-          },
-        },
-      },
-    });
-
-    const permissions: ReadonlySet<string> = new Set(
-      userRoles.flatMap((ur) => ur.role.rolePermissions.map((rp) => rp.permission.name)),
-    );
-    this.cache.set(userId, { permissions, expiresAt: addMilliseconds(new Date(), PermissionsService.CACHE_TTL_MS) });
+    const permissions: ReadonlySet<string> = new Set(await this.authRepository.findUserPermissionNames(userId));
+    this.cache.set(userId, { permissions, expiresAt: addMilliseconds(now(), PermissionsService.CACHE_TTL_MS) });
     return permissions;
   }
 

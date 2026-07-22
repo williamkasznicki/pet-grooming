@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { ErrorMessages } from '../constants/error-messages.constant.js';
-import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuthRepository } from '../../modules/auth/auth.repository.js';
 import { PermissionsService } from '../../modules/auth/permissions.service.js';
 import { IS_PUBLIC_KEY } from '../decorators/auth.decorators.js';
 import { AuthenticatedRequest } from '../types/auth.types.js';
@@ -16,7 +16,7 @@ export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
+    private readonly authRepository: AuthRepository,
     private readonly permissionsService: PermissionsService,
   ) {}
 
@@ -44,10 +44,7 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException(ErrorMessages.INVALID_TOKEN);
     }
 
-    const user = await this.prisma.client.user.findFirst({
-      where: { id: payload.sub },
-      select: { id: true, email: true, name: true },
-    });
+    const user = await this.authRepository.findUserById(payload.sub);
     if (!user) {
       throw new UnauthorizedException(ErrorMessages.INVALID_TOKEN);
     }
