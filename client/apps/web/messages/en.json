@@ -35,6 +35,13 @@
     "loginButton": "Log in",
     "registerButton": "Sign up",
     "noAccount": "No account yet?",
-    "haveAccount": "Already have an account?"
+    "haveAccount": "Already have an account?",
+    "validation": {
+      "required": "This field is required",
+      "email": "Enter a valid email address",
+      "passwordMin": "Password must be at least 8 characters",
+      "phone": "Enter a valid phone number",
+      "tooLong": "This value is too long"
+    }
   }
 }
