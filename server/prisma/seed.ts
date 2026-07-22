@@ -5,9 +5,9 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { hashPassword } from '../src/common/utils/password.util.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
-const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
-});
+const prisma = new PrismaClient( {
+  adapter: new PrismaPg( { connectionString: process.env.DATABASE_URL! } ),
+} );
 
 const petSizes = [
   { code: 'S', desc: 'Small (< 10 kg)', hexBgColorCode: '#DCFCE7', hexTextColorCode: '#166534' },
@@ -49,16 +49,16 @@ const permissions = [
 ];
 
 const roles: { name: string; group: string; permissions: string[] }[] = [
-  { name: 'Admin', group: 'Admin', permissions: ['*'] },
+  { name: 'Admin', group: 'Admin', permissions: [ '*' ] },
   {
     name: 'Groomer',
     group: 'Staff',
-    permissions: ['booking:read', 'booking:update', 'booking:cancel', 'booking:override', 'pet:read'],
+    permissions: [ 'booking:read', 'booking:update', 'booking:cancel', 'booking:override', 'pet:read' ],
   },
   {
     name: 'Client',
     group: 'Client',
-    permissions: ['booking:create', 'booking:read', 'booking:cancel', 'pet:create', 'pet:read', 'pet:update'],
+    permissions: [ 'booking:create', 'booking:read', 'booking:cancel', 'pet:create', 'pet:read', 'pet:update' ],
   },
 ];
 
@@ -99,91 +99,91 @@ const services: { name: string; description: string; tiers: { size: string; pric
 const shopSettings: { key: string; value: unknown }[] = [
   { key: 'shop.timezone', value: 'Asia/Bangkok' },
   { key: 'shop.hours', value: { openMin: 9 * 60, closeMin: 18 * 60 } },
-  { key: 'booking.cancelCutoffHours', value: 24 },
+  { key: 'booking.cancelCutoffHours', value: 2 },
   { key: 'booking.slotStepMin', value: 30 },
   { key: 'booking.minNoticeMin', value: 60 },
   { key: 'reminder.hoursBefore', value: 24 },
 ];
 
-async function main() {
-  for (const s of petSizes) {
-    await prisma.mdPetSize.upsert({ where: { code: s.code }, update: s, create: s });
+async function main () {
+  for ( const s of petSizes ) {
+    await prisma.mdPetSize.upsert( { where: { code: s.code }, update: s, create: s } );
   }
-  for (const s of bookingStatuses) {
-    await prisma.mdBookingStatus.upsert({ where: { code: s.code }, update: s, create: s });
+  for ( const s of bookingStatuses ) {
+    await prisma.mdBookingStatus.upsert( { where: { code: s.code }, update: s, create: s } );
   }
-  for (const s of paymentStatuses) {
-    await prisma.mdPaymentStatus.upsert({ where: { code: s.code }, update: s, create: s });
-  }
-
-  for (const p of permissions) {
-    await prisma.permission.upsert({ where: { name: p.name }, update: p, create: p });
+  for ( const s of paymentStatuses ) {
+    await prisma.mdPaymentStatus.upsert( { where: { code: s.code }, update: s, create: s } );
   }
 
-  for (const r of roles) {
-    const role = await prisma.role.upsert({
+  for ( const p of permissions ) {
+    await prisma.permission.upsert( { where: { name: p.name }, update: p, create: p } );
+  }
+
+  for ( const r of roles ) {
+    const role = await prisma.role.upsert( {
       where: { name: r.name },
       update: { group: r.group },
       create: { name: r.name, group: r.group },
-    });
-    for (const permName of r.permissions) {
-      const perm = await prisma.permission.findUniqueOrThrow({ where: { name: permName } });
-      await prisma.rolePermission.upsert({
+    } );
+    for ( const permName of r.permissions ) {
+      const perm = await prisma.permission.findUniqueOrThrow( { where: { name: permName } } );
+      await prisma.rolePermission.upsert( {
         where: { roleId_permissionId: { roleId: role.id, permissionId: perm.id } },
         update: {},
         create: { roleId: role.id, permissionId: perm.id },
-      });
+      } );
     }
   }
 
   // Services + tiers. Service.name isn't unique in the schema, so match by name
   // (create once, never clobber admin edits); tiers upsert on serviceId+sizeId.
-  for (const svc of services) {
-    const existing = await prisma.service.findFirst({ where: { name: svc.name, deletedAt: null }, select: { id: true } });
-    const service = existing ?? (await prisma.service.create({ data: { name: svc.name, description: svc.description } }));
-    for (const tier of svc.tiers) {
-      const size = await prisma.mdPetSize.findUniqueOrThrow({ where: { code: tier.size }, select: { id: true } });
-      await prisma.serviceTier.upsert({
+  for ( const svc of services ) {
+    const existing = await prisma.service.findFirst( { where: { name: svc.name, deletedAt: null }, select: { id: true } } );
+    const service = existing ?? ( await prisma.service.create( { data: { name: svc.name, description: svc.description } } ) );
+    for ( const tier of svc.tiers ) {
+      const size = await prisma.mdPetSize.findUniqueOrThrow( { where: { code: tier.size }, select: { id: true } } );
+      await prisma.serviceTier.upsert( {
         where: { serviceId_sizeId: { serviceId: service.id, sizeId: size.id } },
         update: {}, // keep admin-edited prices on reseed
         create: { serviceId: service.id, sizeId: size.id, priceThb: tier.priceThb, durationMin: tier.durationMin },
-      });
+      } );
     }
   }
 
-  for (const s of shopSettings) {
-    await prisma.shopSetting.upsert({
+  for ( const s of shopSettings ) {
+    await prisma.shopSetting.upsert( {
       where: { key: s.key },
       update: {}, // never clobber admin-edited values on reseed
       create: { key: s.key, value: s.value as object },
-    });
+    } );
   }
 
   // Default admin (dev bootstrap). Override via SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD.
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@petcrm.local').toLowerCase();
+  const adminEmail = ( process.env.SEED_ADMIN_EMAIL ?? 'admin@petcrm.local' ).toLowerCase();
   const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin1234';
-  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'Admin' } });
-  const admin = await prisma.user.upsert({
+  const adminRole = await prisma.role.findUniqueOrThrow( { where: { name: 'Admin' } } );
+  const admin = await prisma.user.upsert( {
     where: { email: adminEmail },
     update: {}, // never overwrite an existing admin's password on reseed
     create: {
       email: adminEmail,
-      passwordHash: await hashPassword(adminPassword),
+      passwordHash: await hashPassword( adminPassword ),
       name: 'Shop Admin',
     },
-  });
-  await prisma.userRole.upsert({
+  } );
+  await prisma.userRole.upsert( {
     where: { userId_roleId: { userId: admin.id, roleId: adminRole.id } },
     update: {},
     create: { userId: admin.id, roleId: adminRole.id },
-  });
+  } );
 
-  console.log(`Seed complete: master data, permissions, roles, default settings, admin (${adminEmail}).`);
+  console.log( `Seed complete: master data, permissions, roles, default settings, admin (${ adminEmail }).` );
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch( ( e ) => {
+    console.error( e );
     process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+  } )
+  .finally( () => prisma.$disconnect() );

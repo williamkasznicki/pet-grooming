@@ -37,30 +37,30 @@ export const DEFAULT_OPERATING_SETTINGS: ShopOperatingSettings = {
   closeMin: 18 * 60,
   slotStepMin: 30,
   minNoticeMin: 60,
-  cancelCutoffHours: 24,
+  cancelCutoffHours: 2,
   reminderHoursBefore: 24,
 };
 
 type SettingRow = { key: string; value: unknown };
 
 /** Merge raw ShopSetting rows over the defaults. Unknown/malformed values fall back per-field. */
-export function parseOperatingSettings(rows: SettingRow[]): ShopOperatingSettings {
-  const byKey = new Map(rows.map((row) => [row.key, row.value]));
-  const num = (key: string, fallback: number): number => {
-    const value = byKey.get(key);
-    return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+export function parseOperatingSettings ( rows: SettingRow[] ): ShopOperatingSettings {
+  const byKey = new Map( rows.map( ( row ) => [ row.key, row.value ] ) );
+  const num = ( key: string, fallback: number ): number => {
+    const value = byKey.get( key );
+    return typeof value === 'number' && Number.isFinite( value ) ? value : fallback;
   };
 
-  const hours = byKey.get('shop.hours') as { openMin?: number; closeMin?: number } | undefined;
-  const timezone = byKey.get('shop.timezone');
+  const hours = byKey.get( 'shop.hours' ) as { openMin?: number; closeMin?: number } | undefined;
+  const timezone = byKey.get( 'shop.timezone' );
 
   return {
     timezone: typeof timezone === 'string' && timezone.length > 0 ? timezone : DEFAULT_OPERATING_SETTINGS.timezone,
     openMin: typeof hours?.openMin === 'number' ? hours.openMin : DEFAULT_OPERATING_SETTINGS.openMin,
     closeMin: typeof hours?.closeMin === 'number' ? hours.closeMin : DEFAULT_OPERATING_SETTINGS.closeMin,
-    slotStepMin: num('booking.slotStepMin', DEFAULT_OPERATING_SETTINGS.slotStepMin),
-    minNoticeMin: num('booking.minNoticeMin', DEFAULT_OPERATING_SETTINGS.minNoticeMin),
-    cancelCutoffHours: num('booking.cancelCutoffHours', DEFAULT_OPERATING_SETTINGS.cancelCutoffHours),
-    reminderHoursBefore: num('reminder.hoursBefore', DEFAULT_OPERATING_SETTINGS.reminderHoursBefore),
+    slotStepMin: num( 'booking.slotStepMin', DEFAULT_OPERATING_SETTINGS.slotStepMin ),
+    minNoticeMin: num( 'booking.minNoticeMin', DEFAULT_OPERATING_SETTINGS.minNoticeMin ),
+    cancelCutoffHours: num( 'booking.cancelCutoffHours', DEFAULT_OPERATING_SETTINGS.cancelCutoffHours ),
+    reminderHoursBefore: num( 'reminder.hoursBefore', DEFAULT_OPERATING_SETTINGS.reminderHoursBefore ),
   };
 }
