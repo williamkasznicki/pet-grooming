@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, use, useContext, useMemo, useState } from "react"
 
 import { api, authApi } from "../api/client"
 import { can, Permissions } from "../permissions"
@@ -15,8 +15,6 @@ export type AuthUser = {
 
 type AuthContextValue = {
   user: AuthUser | null
-  /** true until the initial session probe finishes */
-  loading: boolean
   can: (permission: Permissions) => boolean
   login: (email: string, password: string) => Promise<AuthUser>
   register: (input: { email: string; password: string; name: string; phone?: string }) => Promise<AuthUser>
@@ -26,27 +24,24 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const refreshUser = useCallback(async () => {
-    try {
-      const res = await api.get<AuthUser>("/auth/me")
-      setUser(res.data)
-    } catch {
-      setUser(null)
-    }
-  }, [])
-
-  useEffect(() => {
-    void refreshUser().finally(() => setLoading(false))
-  }, [refreshUser])
+/**
+ * Session arrives as a promise from the server layout (Next streaming pattern)
+ * and is read with React's `use` — no probe effect, no setState-in-effect.
+ * State changes only happen in user-initiated actions afterwards.
+ */
+export function AuthProvider({
+  sessionPromise,
+  children,
+}: {
+  sessionPromise: Promise<AuthUser | null>
+  children: React.ReactNode
+}) {
+  const initialUser = use(sessionPromise)
+  const [user, setUser] = useState<AuthUser | null>(initialUser)
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
-      loading,
       can: (permission) => (user ? can(user.permissions, permission) : false),
       login: async (email, password) => {
         const res = await authApi.post<{ user: AuthUser }>("/login", { email, password })
@@ -62,9 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authApi.post("/logout")
         setUser(null)
       },
-      refreshUser,
+      refreshUser: async () => {
+        try {
+          const res = await api.get<AuthUser>("/auth/me")
+          setUser(res.data)
+        } catch {
+          setUser(null)
+        }
+      },
     }),
-    [user, loading, refreshUser],
+    [user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

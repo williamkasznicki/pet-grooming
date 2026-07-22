@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { hasLocale, NextIntlClientProvider } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
@@ -6,6 +7,7 @@ import { Geist_Mono, DM_Sans } from "next/font/google"
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth/auth-context"
+import { getSessionUser } from "@/lib/auth/get-session"
 import { routing } from "@/i18n/routing"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -27,6 +29,11 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
   }
   setRequestLocale(locale)
 
+  // Streaming pattern (Next docs "fetching-data"): start the session read but
+  // do NOT await it — the client AuthProvider reads it with use() so the shell
+  // streams while /auth/me resolves. proxy.ts already rotated stale tokens.
+  const sessionPromise = getSessionUser()
+
   return (
     <html
       lang={locale}
@@ -36,7 +43,9 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
       <body>
         <NextIntlClientProvider>
           <ThemeProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <Suspense>
+              <AuthProvider sessionPromise={sessionPromise}>{children}</AuthProvider>
+            </Suspense>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

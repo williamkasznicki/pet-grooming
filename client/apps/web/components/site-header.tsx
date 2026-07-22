@@ -18,7 +18,7 @@ import { Permissions } from "@/lib/permissions"
 export function SiteHeader() {
   const t = useTranslations("nav")
   const locale = useLocale()
-  const { user, loading, can, logout } = useAuth()
+  const { user, can, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const params = useParams()
@@ -61,7 +61,7 @@ export function SiteHeader() {
             {locale === "en" ? "ไทย" : "EN"}
           </Button>
 
-          {!loading && !user && (
+          {!user && (
             <>
               <Button variant="ghost" size="sm" render={<Link href="/login" />}>
                 {t("login")}
