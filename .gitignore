@@ -13,3 +13,4 @@ packages/database/prisma/dev.db
 *.tsbuildinfo
 .claude/settings.local.json
 .claude/skills/
+server/src/generated/

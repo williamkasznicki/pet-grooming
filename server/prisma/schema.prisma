@@ -1,0 +1,288 @@
+// Pet Grooming Management System — data model
+// Source of truth for entity decisions: docs/DESIGN.md · RBAC convention: docs/RBAC.md
+// Status/size/payment lookups are master-data tables (Md*), admin-editable — not enums.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Master data (admin-editable lookups) ─────────────────────────────
+
+model MdPetSize {
+  id               Int     @id @default(autoincrement())
+  code             String  @unique // "S" | "M" | "L" | "XL"
+  hexBgColorCode   String?
+  hexTextColorCode String?
+  desc             String?
+  isActive         Boolean @default(true)
+
+  pets  Pet[]
+  tiers ServiceTier[]
+}
+
+model MdBookingStatus {
+  id               Int     @id @default(autoincrement())
+  code             String  @unique // "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW"
+  hexBgColorCode   String?
+  hexTextColorCode String?
+  desc             String?
+  isActive         Boolean @default(true)
+
+  bookings   Booking[]
+  eventsFrom BookingStatusEvent[] @relation("EventFromStatus")
+  eventsTo   BookingStatusEvent[] @relation("EventToStatus")
+}
+
+model MdPaymentStatus {
+  id               Int     @id @default(autoincrement())
+  code             String  @unique // "UNPAID" | "PAID"
+  hexBgColorCode   String?
+  hexTextColorCode String?
+  desc             String?
+  isActive         Boolean @default(true)
+
+  bookings Booking[]
+}
+
+// ── RBAC (see docs/RBAC.md) ──────────────────────────────────────────
+
+model Role {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique // e.g. "Admin", "Groomer", "Client"
+  group String? // e.g. "Admin", "Staff", "Client"
+  desc  String?
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+}
+
+model Permission {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique // "booking:create", "booking:read", … "*" = super admin
+  displayName String
+  group       String? // e.g. "Booking", "Admin", "Settings"
+  desc        String?
+
+  rolePermissions RolePermission[]
+}
+
+model RolePermission {
+  roleId       Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId Int
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId Int
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+// ── Identity ─────────────────────────────────────────────────────────
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  name         String
+  phone        String?
+  lineUserId   String? @unique // LINE Login scaffold — unused until LINE integration lands
+
+  userRoles      UserRole[]
+  pets           Pet[]
+  clientBookings Booking[]            @relation("ClientBookings")
+  staffProfile   StaffProfile?
+  refreshTokens  RefreshToken[]
+  statusChanges  BookingStatusEvent[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([deletedAt, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ── Pets ─────────────────────────────────────────────────────────────
+
+model Pet {
+  id        String    @id @default(cuid())
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  breed     String?
+  sizeId    Int
+  size      MdPetSize @relation(fields: [sizeId], references: [id])
+  birthDate DateTime?
+  notes     String?
+
+  bookings Booking[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([ownerId])
+  @@index([sizeId])
+}
+
+// ── Services & pricing (admin-editable tiers; see DESIGN.md) ─────────
+
+model Service {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  active      Boolean @default(true)
+
+  tiers    ServiceTier[]
+  bookings Booking[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+}
+
+model ServiceTier {
+  id          String    @id @default(cuid())
+  serviceId   String
+  service     Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  sizeId      Int
+  size        MdPetSize @relation(fields: [sizeId], references: [id])
+  priceThb    Decimal   @db.Decimal(10, 2)
+  durationMin Int
+
+  @@unique([serviceId, sizeId])
+  @@index([sizeId])
+}
+
+// ── Staff & availability (admin-managed windows) ─────────────────────
+
+model StaffProfile {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String?
+  bio         String?
+  active      Boolean @default(true)
+
+  workingHours WorkingHours[]
+  timeOff      TimeOff[]
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Weekly recurring availability window, admin-set (e.g. staff A: Mon 12:00–17:00).
+model WorkingHours {
+  id       String       @id @default(cuid())
+  staffId  String
+  staff    StaffProfile @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  weekday  Int // 0 = Sunday … 6 = Saturday
+  startMin Int // minutes from midnight, shop-local time
+  endMin   Int
+
+  @@index([staffId, weekday])
+}
+
+/// Blocked period. staffId null = shop-wide.
+/// isPermanent = blocked indefinitely (startsAt/endsAt ignored).
+/// Otherwise startsAt–endsAt covers both cases: hours (12 Aug 08:00–17:00) or days (12–20 Aug).
+model TimeOff {
+  id          String        @id @default(cuid())
+  staffId     String?
+  staff       StaffProfile? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  isPermanent Boolean       @default(false)
+  startsAt    DateTime? // required when not permanent (enforced at service layer)
+  endsAt      DateTime?
+  reason      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([staffId, startsAt])
+}
+
+// ── Bookings ─────────────────────────────────────────────────────────
+
+model Booking {
+  id        String       @id @default(cuid())
+  clientId  String
+  client    User         @relation("ClientBookings", fields: [clientId], references: [id])
+  petId     String
+  pet       Pet          @relation(fields: [petId], references: [id])
+  serviceId String
+  service   Service      @relation(fields: [serviceId], references: [id])
+  staffId   String
+  staff     StaffProfile @relation(fields: [staffId], references: [id])
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  // Snapshot of tier price/duration at booking time; staff may override (DESIGN.md).
+  priceThb    Decimal @db.Decimal(10, 2)
+  durationMin Int
+  overridden  Boolean @default(false)
+
+  statusId        Int
+  status          MdBookingStatus @relation(fields: [statusId], references: [id])
+  paymentStatusId Int
+  paymentStatus   MdPaymentStatus @relation(fields: [paymentStatusId], references: [id])
+  notes           String?
+
+  statusEvents BookingStatusEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([staffId, startsAt])
+  @@index([clientId, startsAt])
+  @@index([statusId, startsAt])
+  @@index([petId])
+  @@index([serviceId])
+}
+
+model BookingStatusEvent {
+  id           String           @id @default(cuid())
+  bookingId    String
+  booking      Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fromStatusId Int?
+  fromStatus   MdBookingStatus? @relation("EventFromStatus", fields: [fromStatusId], references: [id])
+  toStatusId   Int
+  toStatus     MdBookingStatus  @relation("EventToStatus", fields: [toStatusId], references: [id])
+  changedById  String?
+  changedBy    User?            @relation(fields: [changedById], references: [id])
+  note         String?
+  createdAt    DateTime         @default(now())
+
+  @@index([bookingId])
+}
+
+// ── Shop settings (all business rules live here, never hardcoded) ────
+
+model ShopSetting {
+  key       String   @id // e.g. "shop.hours", "booking.cancelCutoffHours", "reminder.hoursBefore"
+  value     Json
+  updatedAt DateTime @updatedAt
+}

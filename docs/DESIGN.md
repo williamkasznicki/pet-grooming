@@ -27,8 +27,14 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 
 ## Auth & roles
 
-- Email/password with **JWT access + refresh tokens** and **RBAC**: `client`, `staff`, `admin`.
+- Email/password with **JWT access + refresh tokens**.
+- **Table-driven RBAC** (no role enums): `User ↔ UserRole ↔ Role ↔ RolePermission ↔ Permission`, permissions named `resource:action` with `*` wildcard for super admin. Full convention + seeded roles: see `docs/RBAC.md`.
 - **LINE Login scaffolded but stubbed** for future implementation. Never log LINE raw payloads, tokens, or owner contact details.
+
+## Master data (no enums)
+
+- Lookup values are admin-editable tables, not Prisma enums: `MdPetSize`, `MdBookingStatus`, `MdPaymentStatus` — each `(id, code, hexBgColorCode, hexTextColorCode, desc, isActive)`. Color codes drive UI badges.
+- `TimeOff` blocked periods support: permanent (`isPermanent`), a specific datetime window (12 Aug 08:00–17:00), or a multi-day range (12–20 Aug) via nullable `startsAt`/`endsAt`; `staffId null` = shop-wide.
 
 ## Frontend
 
@@ -42,7 +48,7 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 ## Backend & data
 
 - NestJS (`server/`) + **Prisma + PostgreSQL** (Docker Compose locally).
-- Core entities: `User`, `Pet` (owner, size, breed, notes), `Service` + `ServiceTier`, `StaffProfile` + `WorkingHours`, `Booking` (+ overrides, status history), `ShopSetting`.
+- Core entities: `User` (+ `UserRole`/`Role`/`RolePermission`/`Permission`, `RefreshToken`), `Pet`, `Service` + `ServiceTier`, `StaffProfile` + `WorkingHours` + `TimeOff`, `Booking` + `BookingStatusEvent`, master data `MdPetSize`/`MdBookingStatus`/`MdPaymentStatus`, `ShopSetting`. Master data + RBAC rows are seeded via `prisma/seed.ts`.
 
 ## AI integration (runtime)
 
