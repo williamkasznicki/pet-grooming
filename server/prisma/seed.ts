@@ -2,7 +2,7 @@
 // Convention reference: docs/RBAC.md
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import argon2 from 'argon2';
+import { hashPassword } from '../src/common/auth/password.util.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
 const prisma = new PrismaClient({
@@ -117,7 +117,7 @@ async function main() {
     update: {}, // never overwrite an existing admin's password on reseed
     create: {
       email: adminEmail,
-      passwordHash: await argon2.hash(adminPassword),
+      passwordHash: await hashPassword(adminPassword),
       name: 'Shop Admin',
     },
   });

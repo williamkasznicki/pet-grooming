@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import argon2 from 'argon2';
+import { hashPassword, verifyPassword } from '../../common/auth/password.util.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/prisma/prisma-error.util.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -34,7 +34,7 @@ export class AuthService {
   ) { }
 
   async register ( dto: RegisterDto ): Promise<AuthResponseDto> {
-    const passwordHash = await argon2.hash( dto.password );
+    const passwordHash = await hashPassword( dto.password );
 
     try {
       const user = await this.prisma.client.user.create( {
@@ -62,7 +62,7 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
       select: { id: true, email: true, name: true, passwordHash: true },
     } );
-    if ( !user || !( await argon2.verify( user.passwordHash, dto.password ) ) ) {
+    if ( !user || !( await verifyPassword( user.passwordHash, dto.password ) ) ) {
       throw new UnauthorizedException( ErrorMessages.INVALID_CREDENTIALS );
     }
     return this.buildAuthResponse( { id: user.id, email: user.email, name: user.name } );

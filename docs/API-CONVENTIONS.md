@@ -30,6 +30,15 @@ Rules for `server/` code. Built-in NestJS mechanisms first — custom code only 
 - Adding a new soft-deletable model = add `deletedAt DateTime?` in schema **and** its name to `SOFT_DELETE_MODELS`.
 - `isActive` (master data, services) is **not** auto-filtered on purpose: admin screens must list inactive rows to re-enable them. Client-facing queries filter `isActive: true` explicitly.
 
+## Dates & times
+
+- All date math via **date-fns** (+ `@date-fns/tz`) — no manual `Date` arithmetic (`getTime()` offsets, etc.).
+- Store UTC; interpret shop-local values (working hours, slots) in the shop timezone from settings (`shop.timezone`). See docs/AUTH.md → Date/time policy.
+
+## Passwords
+
+- Only ever hash/verify through `src/common/auth/password.util.ts` (argon2id + salt + `PASSWORD_PEPPER`). Never call argon2 directly. See docs/AUTH.md.
+
 ## Checklist for a new endpoint
 
 1. DTO with class-validator + `@ApiProperty` in the module's `dto/`.

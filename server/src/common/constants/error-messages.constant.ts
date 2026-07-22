@@ -9,6 +9,11 @@ export const ErrorMessages = {
   PET_NOT_FOUND: 'Pet not found.',
   PET_SIZE_INVALID: 'Pet size does not exist or is inactive.',
 
+  // Users & RBAC
+  USER_NOT_FOUND: 'User not found.',
+  ROLE_NOT_FOUND: 'Role not found.',
+  PERMISSION_NOT_FOUND: 'Permission not found.',
+
   // Services
   SERVICE_NOT_FOUND: 'Service not found.',
   SERVICE_TIER_NOT_FOUND: 'Service tier not found.',

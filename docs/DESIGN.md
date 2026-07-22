@@ -28,7 +28,7 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 ## Auth & roles
 
 - Email/password with **JWT access + refresh tokens**.
-- **Table-driven RBAC** (no role enums): `User ↔ UserRole ↔ Role ↔ RolePermission ↔ Permission`, permissions named `resource:action` with `*` wildcard for super admin. Full convention + seeded roles: see `docs/RBAC.md`.
+- **Table-driven RBAC** (no role enums): `User ↔ UserRole ↔ Role ↔ RolePermission ↔ Permission`, permissions named `resource:action` with `*` wildcard for super admin. Full convention + seeded roles: see `docs/RBAC.md`. Login/token flow, salt+pepper, and id-strategy rationale: `docs/AUTH.md`.
 - **LINE Login scaffolded but stubbed** for future implementation. Never log LINE raw payloads, tokens, or owner contact details.
 
 ## Master data (no enums)

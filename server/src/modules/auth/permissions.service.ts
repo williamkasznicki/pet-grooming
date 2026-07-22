@@ -43,4 +43,9 @@ export class PermissionsService {
   invalidate(userId: string): void {
     this.cache.delete(userId);
   }
+
+  /** Call after changing a ROLE's permissions (or deleting a role) — affects every user holding it. */
+  invalidateAll(): void {
+    this.cache.clear();
+  }
 }

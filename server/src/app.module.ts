@@ -6,13 +6,26 @@ import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
 import { PermissionsGuard } from './common/auth/permissions.guard.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { MasterDataModule } from './modules/master-data/master-data.module.js';
+import { PermissionsModule } from './modules/permissions/permissions.module.js';
 import { PetsModule } from './modules/pets/pets.module.js';
+import { RolesModule } from './modules/roles/roles.module.js';
 import { ServicesModule } from './modules/services/services.module.js';
 import { ShopSettingsModule } from './modules/shop-settings/shop-settings.module.js';
+import { UsersModule } from './modules/users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, PetsModule, ServicesModule, MasterDataModule, ShopSettingsModule],
+  imports: [
+    PrismaModule,
+    AuthModule,
+    PetsModule,
+    ServicesModule,
+    MasterDataModule,
+    ShopSettingsModule,
+    UsersModule,
+    RolesModule,
+    PermissionsModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
