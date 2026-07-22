@@ -2,6 +2,7 @@
 // Convention reference: docs/RBAC.md
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import argon2 from 'argon2';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 
 const prisma = new PrismaClient({
@@ -107,7 +108,26 @@ async function main() {
     });
   }
 
-  console.log('Seed complete: master data, permissions, roles, default settings.');
+  // Default admin (dev bootstrap). Override via SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD.
+  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'admin@petcrm.local').toLowerCase();
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'admin1234';
+  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: 'Admin' } });
+  const admin = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {}, // never overwrite an existing admin's password on reseed
+    create: {
+      email: adminEmail,
+      passwordHash: await argon2.hash(adminPassword),
+      name: 'Shop Admin',
+    },
+  });
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: admin.id, roleId: adminRole.id } },
+    update: {},
+    create: { userId: admin.id, roleId: adminRole.id },
+  });
+
+  console.log(`Seed complete: master data, permissions, roles, default settings, admin (${adminEmail}).`);
 }
 
 main()

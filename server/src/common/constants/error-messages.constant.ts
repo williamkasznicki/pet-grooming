@@ -20,6 +20,13 @@ export const ErrorMessages = {
 
   // Validation
   PRICE_INVALID: 'priceThb must be a non-negative amount with up to 2 decimals',
+
+  // Auth
+  INVALID_CREDENTIALS: 'Invalid email or password.',
+  EMAIL_TAKEN: 'An account with this email already exists.',
+  UNAUTHENTICATED: 'Authentication required.',
+  INVALID_TOKEN: 'Invalid or expired token.',
+  FORBIDDEN: 'You do not have permission to perform this action.',
 } as const;
 
 export type ErrorMessageKey = keyof typeof ErrorMessages;

@@ -1,9 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Public } from '../../common/auth/auth.decorators.js';
 import { MasterDataResponseDto } from './dto/master-data-response.dto.js';
 import { MasterDataService } from './master-data.service.js';
 
 @ApiTags('master-data')
+@Public() // read-only lookups needed by the booking UI pre-login
 @Controller('master-data')
 export class MasterDataController {
   constructor(private readonly masterDataService: MasterDataService) {}

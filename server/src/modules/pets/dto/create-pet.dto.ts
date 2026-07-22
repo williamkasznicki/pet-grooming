@@ -3,11 +3,6 @@ import { Type } from 'class-transformer';
 import { IsDate, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class CreatePetDto {
-  @ApiProperty({ description: 'Owner user id (temporary until auth provides it)', example: 'cmrw5wcsp00000kga6eicbozq' })
-  @IsString()
-  @MaxLength(191)
-  ownerId!: string;
-
   @ApiProperty({ maxLength: 120, example: 'Mochi' })
   @IsString()
   @MaxLength(120)
