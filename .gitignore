@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+coverage/
+.env
+.env.local
+*.log
+.pnpm-store/
+graphify-out/
+apps/web/.next/
+packages/database/prisma/dev.db
+.turbo/
+*.tsbuildinfo
+.claude/settings.local.json
+.claude/skills/

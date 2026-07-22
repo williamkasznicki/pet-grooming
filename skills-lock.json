@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "design-system": {
+      "source": "affaan-m/ECC",
+      "sourceType": "github",
+      "skillPath": "skills/design-system/SKILL.md",
+      "computedHash": "04ba4a8436c2d2fadcbeac7bc1ca8b8434096ebb6bf724426f5c2468430477d5"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grill-me/SKILL.md",
+      "computedHash": "7edd436132b43ea2973710f0c28a9879c9b0910651eb89a991a7e98cb6dbbacb"
+    },
+    "grilling": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/grilling/SKILL.md",
+      "computedHash": "ac63b22655a6fa4a59468dda21415b773c0aaf5a7e2e27e2259eaabf02a840bc"
+    },
+    "nestjs-patterns": {
+      "source": "affaan-m/ECC",
+      "sourceType": "github",
+      "skillPath": "skills/nestjs-patterns/SKILL.md",
+      "computedHash": "b0ba81185468f7c6e950b4de91fae8004a5d56501a31ea63caa5f7cc3854e6a7"
+    }
+  }
+}
