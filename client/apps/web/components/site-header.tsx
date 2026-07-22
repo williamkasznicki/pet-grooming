@@ -1,17 +1,10 @@
 "use client"
 
 import { useLocale, useTranslations } from "next-intl"
-import { useParams } from "next/navigation"
 
 import { Button } from "@workspace/ui/components/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu"
 
-import { Link, usePathname, useRouter } from "@/i18n/navigation"
+import { Link, useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
 
@@ -20,16 +13,21 @@ export function SiteHeader() {
   const locale = useLocale()
   const { user, can, logout } = useAuth()
   const router = useRouter()
-  const pathname = usePathname()
-  const params = useParams()
 
   const switchLocale = (next: string) => {
-    // Re-render the same route under the other locale prefix.
-    router.replace(
-      // @ts-expect-error params are compatible with the current pathname
-      { pathname, params },
-      { locale: next },
-    )
+    // HARD navigation on purpose: swapping <html lang> re-renders the root
+    // layout, and a soft nav makes React re-encounter next-themes' inline
+    // <script> (dev warning; script would not re-run anyway). A full load
+    // gives a clean document in the new locale.
+    const target = window.location.pathname.replace(new RegExp(`^/${locale}(?=/|$)`), `/${next}`)
+    window.location.assign(target + window.location.search)
+  }
+
+  const onLogout = () => {
+    void logout().then(() => {
+      router.replace("/")
+      router.refresh() // re-render server components without the session
+    })
   }
 
   return (
@@ -73,14 +71,14 @@ export function SiteHeader() {
           )}
 
           {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+            <>
+              <span className="text-muted-foreground max-w-32 truncate px-1" title={user.name}>
                 {user.name}
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => void logout()}>{t("logout")}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </span>
+              <Button variant="outline" size="sm" onClick={onLogout}>
+                {t("logout")}
+              </Button>
+            </>
           )}
         </nav>
       </div>
