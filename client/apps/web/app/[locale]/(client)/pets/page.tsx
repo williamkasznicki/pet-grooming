@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { Controller, useForm } from "react-hook-form"
@@ -33,7 +33,8 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { usePermissions } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
-import type { MasterDataItem, Pet } from "@/lib/types/api"
+import type { Pet } from "@/lib/types/api"
+import { usePets } from "./use-pets"
 
 const petSchema = z.object({
   name: z.string().min(1, "validation.required").max(120, "validation.tooLong"),
@@ -45,13 +46,7 @@ const petSchema = z.object({
 
 type PetValues = z.infer<typeof petSchema>
 
-const emptyPetValues: PetValues = {
-  name: "",
-  breed: "",
-  sizeId: 0,
-  birthDate: "",
-  notes: "",
-}
+const emptyPetValues: PetValues = { name: "", breed: "", sizeId: 0, birthDate: "", notes: "" }
 
 function petDefaults(pet?: Pet): PetValues {
   return pet
@@ -59,7 +54,7 @@ function petDefaults(pet?: Pet): PetValues {
         name: pet.name,
         breed: pet.breed ?? "",
         sizeId: pet.sizeId,
-        birthDate: pet.birthDate ?? "",
+        birthDate: pet.birthDate?.slice(0, 10) ?? "",
         notes: pet.notes ?? "",
       }
     : emptyPetValues
@@ -69,74 +64,31 @@ function optionalString(value: string | undefined): string | undefined {
   return value?.trim() ? value.trim() : undefined
 }
 
+/** One state machine instead of open-flags + editing/deleting/error trios. */
+type DialogState =
+  | { mode: "closed" }
+  | { mode: "form"; pet?: Pet; busyError?: string }
+  | { mode: "delete"; pet: Pet; busy?: boolean; busyError?: string }
+
 export default function PetsPage() {
   const t = useTranslations("pets")
   const ta = useTranslations("auth")
   const tc = useTranslations("common")
   const { can } = usePermissions()
+  const { pets, sizes, sizesById, isLoading, reload } = usePets()
 
-  const [pets, setPets] = useState<Pet[] | null>(null)
-  const [sizes, setSizes] = useState<MasterDataItem[]>([])
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
-  const [petDialogOpen, setPetDialogOpen] = useState(false)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [editingPet, setEditingPet] = useState<Pet | null>(null)
-  const [deletingPet, setDeletingPet] = useState<Pet | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
 
-  const form = useForm<PetValues>({
-    resolver: zodResolver(petSchema),
-    defaultValues: emptyPetValues,
-  })
+  const form = useForm<PetValues>({ resolver: zodResolver(petSchema), defaultValues: emptyPetValues })
   const { errors, isSubmitting } = form.formState
 
-  const sizesById = useMemo(() => new Map(sizes.map((size) => [size.id, size])), [sizes])
-
-  const loadPets = useCallback(async () => {
-    try {
-      const [petsRes, sizesRes] = await Promise.all([
-        api.get<Pet[]>("/pets"),
-        api.get<MasterDataItem[]>("/master-data/pet-sizes"),
-      ])
-      setLoadError(null)
-      setPets(petsRes.data)
-      setSizes(sizesRes.data)
-    } catch (err) {
-      setLoadError(apiErrorMessage(err, tc("error")))
-      setPets([])
-    }
-  }, [tc])
-
-  useEffect(() => {
-    let ignore = false
-    void Promise.all([api.get<Pet[]>("/pets"), api.get<MasterDataItem[]>("/master-data/pet-sizes")])
-      .then(([petsRes, sizesRes]) => {
-        if (ignore) return
-        setLoadError(null)
-        setPets(petsRes.data)
-        setSizes(sizesRes.data)
-      })
-      .catch((err: unknown) => {
-        if (ignore) return
-        setLoadError(apiErrorMessage(err, tc("error")))
-        setPets([])
-      })
-    return () => {
-      ignore = true
-    }
-  }, [tc])
-
-  const openPetDialog = (pet?: Pet) => {
-    setEditingPet(pet ?? null)
-    setFormError(null)
+  const openForm = (pet?: Pet) => {
     form.reset(petDefaults(pet))
-    setPetDialogOpen(true)
+    setDialog({ mode: "form", pet })
   }
 
   const onSubmit = form.handleSubmit(async (values) => {
-    setFormError(null)
+    if (dialog.mode !== "form") return
     const payload = {
       name: values.name.trim(),
       breed: optionalString(values.breed),
@@ -144,33 +96,28 @@ export default function PetsPage() {
       birthDate: values.birthDate || undefined,
       notes: optionalString(values.notes),
     }
-
     try {
-      if (editingPet) {
-        await api.put(`/pets/${editingPet.id}`, payload)
+      if (dialog.pet) {
+        await api.put(`/pets/${dialog.pet.id}`, payload)
       } else {
         await api.post("/pets", payload)
       }
-      setPetDialogOpen(false)
-      await loadPets()
+      setDialog({ mode: "closed" })
+      reload()
     } catch (err) {
-      setFormError(apiErrorMessage(err, tc("error")))
+      setDialog({ ...dialog, busyError: apiErrorMessage(err, tc("error")) })
     }
   })
 
   const confirmDelete = async () => {
-    if (!deletingPet) return
-    setDeleting(true)
-    setDeleteError(null)
+    if (dialog.mode !== "delete") return
+    setDialog({ ...dialog, busy: true, busyError: undefined })
     try {
-      await api.delete(`/pets/${deletingPet.id}`)
-      setDeleteDialogOpen(false)
-      setDeletingPet(null)
-      await loadPets()
+      await api.delete(`/pets/${dialog.pet.id}`)
+      setDialog({ mode: "closed" })
+      reload()
     } catch (err) {
-      setDeleteError(apiErrorMessage(err, tc("error")))
-    } finally {
-      setDeleting(false)
+      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
     }
   }
 
@@ -178,12 +125,10 @@ export default function PetsPage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-3xl font-semibold">{t("title")}</h1>
-        <Button onClick={() => openPetDialog()}>{t("add")}</Button>
+        <Button onClick={() => openForm()}>{t("add")}</Button>
       </div>
 
-      {loadError && <p className="text-destructive mb-4 text-sm">{loadError}</p>}
-
-      {pets === null ? (
+      {isLoading || pets === null ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-40" />
@@ -193,7 +138,7 @@ export default function PetsPage() {
         <Card>
           <CardContent className="flex flex-col items-start gap-3 pt-6">
             <p className="text-muted-foreground text-sm">{t("empty")}</p>
-            <Button onClick={() => openPetDialog()}>{t("add")}</Button>
+            <Button onClick={() => openForm()}>{t("add")}</Button>
           </CardContent>
         </Card>
       ) : (
@@ -222,19 +167,11 @@ export default function PetsPage() {
                   {pet.breed && <p className="text-sm">{pet.breed}</p>}
                   {pet.notes && <p className="text-muted-foreground line-clamp-4 text-sm">{pet.notes}</p>}
                   <div className="mt-auto flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openPetDialog(pet)}>
+                    <Button variant="outline" size="sm" onClick={() => openForm(pet)}>
                       {t("edit")}
                     </Button>
                     {can(Permissions.DELETE_PET) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setDeletingPet(pet)
-                          setDeleteError(null)
-                          setDeleteDialogOpen(true)
-                        }}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => setDialog({ mode: "delete", pet })}>
                         {tc("delete")}
                       </Button>
                     )}
@@ -246,16 +183,11 @@ export default function PetsPage() {
         </div>
       )}
 
-      <Dialog
-        open={petDialogOpen}
-        onOpenChange={(open) => {
-          setPetDialogOpen(open)
-          if (!open) setEditingPet(null)
-        }}
-      >
+      {/* Create / edit */}
+      <Dialog open={dialog.mode === "form"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingPet ? t("edit") : t("add")}</DialogTitle>
+            <DialogTitle>{dialog.mode === "form" && dialog.pet ? t("edit") : t("add")}</DialogTitle>
           </DialogHeader>
           <form onSubmit={(event) => void onSubmit(event)} noValidate>
             <FieldGroup>
@@ -275,7 +207,10 @@ export default function PetsPage() {
                 render={({ field }) => (
                   <Field data-invalid={!!errors.sizeId}>
                     <FieldLabel htmlFor="pet-size">{t("size")}</FieldLabel>
-                    <Select value={field.value ? String(field.value) : ""} onValueChange={(value) => field.onChange(Number(value))}>
+                    <Select
+                      value={field.value ? String(field.value) : ""}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
                       <SelectTrigger id="pet-size" className="w-full" aria-invalid={!!errors.sizeId}>
                         <SelectValue placeholder={t("sizePlaceholder")} />
                       </SelectTrigger>
@@ -301,7 +236,7 @@ export default function PetsPage() {
                 <Textarea id="pet-notes" aria-invalid={!!errors.notes} {...form.register("notes")} />
                 {errors.notes?.message && <FieldError>{ta(errors.notes.message)}</FieldError>}
               </Field>
-              {formError && <FieldError>{formError}</FieldError>}
+              {dialog.mode === "form" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
               <DialogFooter>
                 <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
                 <Button type="submit" disabled={isSubmitting}>
@@ -313,23 +248,22 @@ export default function PetsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          setDeleteDialogOpen(open)
-          if (!open) setDeletingPet(null)
-        }}
-      >
+      {/* Delete confirm */}
+      <Dialog open={dialog.mode === "delete"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("deleteConfirm")}</DialogTitle>
-            {deletingPet && <DialogDescription>{deletingPet.name}</DialogDescription>}
+            {dialog.mode === "delete" && <DialogDescription>{dialog.pet.name}</DialogDescription>}
           </DialogHeader>
-          {deleteError && <FieldError>{deleteError}</FieldError>}
+          {dialog.mode === "delete" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
-            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deleting}>
-              {deleting ? tc("loading") : tc("delete")}
+            <Button
+              variant="destructive"
+              onClick={() => void confirmDelete()}
+              disabled={dialog.mode === "delete" && dialog.busy}
+            >
+              {dialog.mode === "delete" && dialog.busy ? tc("loading") : tc("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

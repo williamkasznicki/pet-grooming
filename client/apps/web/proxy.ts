@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server"
 
 import { routing } from "./i18n/routing"
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "./lib/auth/cookie-names"
+import { createSingleFlight } from "./lib/auth/single-flight"
 
 const handleI18n = createIntlMiddleware(routing)
 
@@ -25,16 +26,13 @@ function stripLocale(pathname: string): string {
 type RotatedTokens = { accessToken: string; refreshToken: string }
 
 /** Single-flight per refresh token: rotation revokes the presented token, so
- *  parallel page requests must share one exchange. */
-const inFlight = new Map<string, Promise<RotatedTokens | null>>()
+ *  parallel page requests must share one exchange. Lazy-evicting — no timers. */
+const singleFlight = createSingleFlight<RotatedTokens | null>(5_000)
 
 /** Runs on the edge runtime, where axios cannot — auth infra here uses native
  *  fetch; the axios-only rule (docs/DESIGN.md) governs application data code. */
 function rotateTokens(refreshToken: string): Promise<RotatedTokens | null> {
-  const existing = inFlight.get(refreshToken)
-  if (existing) return existing
-
-  const attempt = (async () => {
+  return singleFlight(refreshToken, async () => {
     try {
       const res = await fetch(`${process.env.API_URL ?? "http://localhost:4000"}/auth/refresh`, {
         method: "POST",
@@ -46,12 +44,7 @@ function rotateTokens(refreshToken: string): Promise<RotatedTokens | null> {
     } catch {
       return null
     }
-  })().finally(() => {
-    setTimeout(() => inFlight.delete(refreshToken), 5_000)
   })
-
-  inFlight.set(refreshToken, attempt)
-  return attempt
 }
 
 const secureCookies = process.env.NODE_ENV === "production" && process.env.ALLOW_INSECURE_COOKIES !== "1"

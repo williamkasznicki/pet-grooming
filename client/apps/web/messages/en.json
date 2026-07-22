@@ -7,7 +7,9 @@
     "delete": "Delete",
     "back": "Back",
     "next": "Next",
-    "error": "Something went wrong. Please try again."
+    "error": "Something went wrong. Please try again.",
+    "errorTitle": "Something went wrong",
+    "tryAgain": "Try again"
   },
   "nav": {
     "services": "Services",

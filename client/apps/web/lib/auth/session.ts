@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 
 import { nestApi } from "../api/nest"
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "./cookie-names"
+import { createSingleFlight } from "./single-flight"
 
 export type SessionUser = {
   id: string
@@ -43,22 +44,13 @@ export async function getRefreshToken(): Promise<string | undefined> {
 /**
  * Single-flight refresh: concurrent 401s share one rotation (the backend
  * revokes the presented token on use, so a second parallel refresh with the
- * same token would 401). Keyed per refresh token, per server instance.
+ * same token would 401). Lazy-evicting cache — no timers, no leak.
  */
-const inFlight = new Map<string, Promise<AuthPayload | null>>()
+const singleFlight = createSingleFlight<AuthPayload | null>(5_000)
 
-export async function refreshSession(refreshToken: string): Promise<AuthPayload | null> {
-  const existing = inFlight.get(refreshToken)
-  if (existing) return existing
-
-  const attempt = (async () => {
+export function refreshSession(refreshToken: string): Promise<AuthPayload | null> {
+  return singleFlight(refreshToken, async () => {
     const res = await nestApi.post<AuthPayload>("/auth/refresh", { refreshToken })
     return res.status === 200 ? res.data : null
-  })().finally(() => {
-    // Let the map entry linger briefly so near-simultaneous callers still share it.
-    setTimeout(() => inFlight.delete(refreshToken), 5_000)
   })
-
-  inFlight.set(refreshToken, attempt)
-  return attempt
 }

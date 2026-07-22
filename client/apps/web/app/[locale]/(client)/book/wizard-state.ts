@@ -3,6 +3,15 @@ import type { Availability, AvailabilitySlot, Pet, Service } from "@/lib/types/a
 export type Step = "service" | "pet" | "time" | "confirm"
 export const STEP_ORDER: Step[] = ["service", "pet", "time", "confirm"]
 
+export const MAX_DAYS_AHEAD = 30
+
+// Module scope: evaluated once at load, outside render (react-hooks/purity).
+// Staleness is irrelevant — the server enforces min-notice on every request.
+export const DATE_BOUNDS = {
+  before: new Date(),
+  after: new Date(Date.now() + MAX_DAYS_AHEAD * 86_400_000),
+}
+
 /**
  * Single source of truth for the booking wizard. A reducer instead of a dozen
  * useStates: every mutation is a named transition, related fields change

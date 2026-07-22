@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
 
 import { Badge } from "@workspace/ui/components/badge"
@@ -20,69 +20,30 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 
 import { Link } from "@/i18n/navigation"
 import { api, apiErrorMessage } from "@/lib/api/client"
+import { useApiQuery } from "@/lib/api/use-api-query"
 import type { Booking } from "@/lib/types/api"
+
+/** One state machine for the cancel dialog instead of open/target/error/busy quads. */
+type CancelDialog = { mode: "closed" } | { mode: "confirm"; booking: Booking; busy?: boolean; busyError?: string }
 
 export default function BookingsPage() {
   const t = useTranslations("bookings")
   const tc = useTranslations("common")
   const format = useFormatter()
 
-  const [bookings, setBookings] = useState<Booking[] | null>(null)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [cancelError, setCancelError] = useState<string | null>(null)
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
-  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null)
-  const [cancelling, setCancelling] = useState(false)
-
-  const loadBookings = useCallback(async () => {
-    try {
-      const res = await api.get<Booking[]>("/bookings")
-      setLoadError(null)
-      setBookings(res.data)
-    } catch (err) {
-      setLoadError(apiErrorMessage(err, tc("error")))
-      setBookings([])
-    }
-  }, [tc])
-
-  useEffect(() => {
-    let ignore = false
-    void api
-      .get<Booking[]>("/bookings")
-      .then((res) => {
-        if (ignore) return
-        setLoadError(null)
-        setBookings(res.data)
-      })
-      .catch((err: unknown) => {
-        if (ignore) return
-        setLoadError(apiErrorMessage(err, tc("error")))
-        setBookings([])
-      })
-    return () => {
-      ignore = true
-    }
-  }, [tc])
-
-  const openCancelDialog = (booking: Booking) => {
-    setBookingToCancel(booking)
-    setCancelError(null)
-    setCancelDialogOpen(true)
-  }
+  // Page-critical query: failures render the segment's error.tsx boundary.
+  const { data: bookings, isLoading, refetch } = useApiQuery<Booking[]>("/bookings", { throwOnError: true })
+  const [dialog, setDialog] = useState<CancelDialog>({ mode: "closed" })
 
   const confirmCancel = async () => {
-    if (!bookingToCancel) return
-    setCancelling(true)
-    setCancelError(null)
+    if (dialog.mode !== "confirm") return
+    setDialog({ ...dialog, busy: true, busyError: undefined })
     try {
-      await api.post(`/bookings/${bookingToCancel.id}/cancel`)
-      setCancelDialogOpen(false)
-      setBookingToCancel(null)
-      await loadBookings()
+      await api.post(`/bookings/${dialog.booking.id}/cancel`)
+      setDialog({ mode: "closed" })
+      refetch()
     } catch (err) {
-      setCancelError(apiErrorMessage(err, tc("error")))
-    } finally {
-      setCancelling(false)
+      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
     }
   }
 
@@ -90,9 +51,7 @@ export default function BookingsPage() {
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <h1 className="mb-6 text-3xl font-semibold">{t("title")}</h1>
 
-      {loadError && <p className="text-destructive mb-4 text-sm">{loadError}</p>}
-
-      {bookings === null ? (
+      {isLoading || bookings === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-44" />
@@ -133,7 +92,12 @@ export default function BookingsPage() {
                 <p className="text-muted-foreground">{t("price", { price: format.number(Number(booking.priceThb)) })}</p>
                 <p>{booking.paymentStatus === "PAID" ? t("paymentPAID") : t("paymentUNPAID")}</p>
                 {booking.status.code === "CONFIRMED" && (
-                  <Button variant="outline" size="sm" className="mt-2 self-start" onClick={() => openCancelDialog(booking)}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 self-start"
+                    onClick={() => setDialog({ mode: "confirm", booking })}
+                  >
                     {t("cancel")}
                   </Button>
                 )}
@@ -143,28 +107,26 @@ export default function BookingsPage() {
         </div>
       )}
 
-      <Dialog
-        open={cancelDialogOpen}
-        onOpenChange={(open) => {
-          setCancelDialogOpen(open)
-          if (!open) setBookingToCancel(null)
-        }}
-      >
+      <Dialog open={dialog.mode === "confirm"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("cancelConfirm")}</DialogTitle>
-            {bookingToCancel && (
+            {dialog.mode === "confirm" && (
               <DialogDescription>
-                {bookingToCancel.serviceName} ·{" "}
-                {format.dateTime(new Date(bookingToCancel.startsAt), { dateStyle: "medium", timeStyle: "short" })}
+                {dialog.booking.serviceName} ·{" "}
+                {format.dateTime(new Date(dialog.booking.startsAt), { dateStyle: "medium", timeStyle: "short" })}
               </DialogDescription>
             )}
           </DialogHeader>
-          {cancelError && <FieldError>{cancelError}</FieldError>}
+          {dialog.mode === "confirm" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>{t("cancelKeep")}</DialogClose>
-            <Button variant="destructive" onClick={() => void confirmCancel()} disabled={cancelling}>
-              {cancelling ? tc("loading") : t("cancel")}
+            <Button
+              variant="destructive"
+              onClick={() => void confirmCancel()}
+              disabled={dialog.mode === "confirm" && dialog.busy}
+            >
+              {dialog.mode === "confirm" && dialog.busy ? tc("loading") : t("cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>
