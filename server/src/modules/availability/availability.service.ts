@@ -115,6 +115,7 @@ export class AvailabilityService {
   private async loadTier ( query: AvailabilityQueryDto ): Promise<{ durationMin: number }> {
     const tier = await this.availabilityRepository.findActiveTier( query );
     if ( !tier ) {
+      console.log( `No active service tier for serviceId=${ query.serviceId } sizeId=${ query.sizeId }` );
       throw new NotFoundException( ErrorMessages.SERVICE_TIER_NOT_FOUND );
     }
     return tier;

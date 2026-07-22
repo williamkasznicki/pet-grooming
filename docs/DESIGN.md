@@ -42,7 +42,7 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 
 - **Auth transport: BFF pattern** — Next.js route handlers (`/api/auth/*`) proxy the NestJS auth endpoints and keep access/refresh tokens in **httpOnly cookies**; browser JS never sees tokens. API calls to NestJS go through the BFF proxy which attaches the Bearer header server-side and transparently refreshes on 401 (single-flight).
 - **HTTP client: axios only** — one configured axios instance for the BFF (browser→Next) and one for the proxy (Next→NestJS). No other fetching libraries.
-- **i18n: Thai + English from day one** via next-intl — every UI string goes through translations; Thai is the default locale.
+- **i18n: Thai + English from day one** via next-intl — every UI string goes through translations; **English is the default locale**.
 - **Components: shadcn/ui (already scaffolded, monorepo flow)** — shared components live in `client/packages/ui` (`base-lyra` style, Remix icons); add via `npx shadcn@latest add <component>` per <https://ui.shadcn.com/docs/monorepo>. Never hand-roll a widget shadcn provides.
 
 - One Next.js app (`client/apps/web`) with route groups:

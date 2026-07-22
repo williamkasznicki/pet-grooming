@@ -1,0 +1,40 @@
+{
+  "common": {
+    "appName": "Pet Grooming",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "error": "Something went wrong. Please try again."
+  },
+  "nav": {
+    "services": "Services",
+    "myPets": "My Pets",
+    "myBookings": "My Bookings",
+    "bookNow": "Book now",
+    "admin": "Admin",
+    "login": "Log in",
+    "register": "Sign up",
+    "logout": "Log out"
+  },
+  "landing": {
+    "title": "Happy pets, fresh looks",
+    "subtitle": "Book a bath, groom, or nail trim with our groomers in minutes.",
+    "cta": "Book an appointment",
+    "servicesTitle": "Our services"
+  },
+  "auth": {
+    "loginTitle": "Welcome back",
+    "registerTitle": "Create your account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Your name",
+    "phone": "Phone (optional)",
+    "loginButton": "Log in",
+    "registerButton": "Sign up",
+    "noAccount": "No account yet?",
+    "haveAccount": "Already have an account?"
+  }
+}
