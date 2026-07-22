@@ -20,7 +20,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 
 import { Link } from "@/i18n/navigation"
 import { api, apiErrorMessage } from "@/lib/api/client"
-import { useApiQuery } from "@/lib/api/use-api-query"
+import { useAxios } from "@/hooks/useAxios"
 import type { Booking } from "@/lib/types/api"
 
 /** One state machine for the cancel dialog instead of open/target/error/busy quads. */
@@ -32,7 +32,7 @@ export default function BookingsPage() {
   const format = useFormatter()
 
   // Page-critical query: failures render the segment's error.tsx boundary.
-  const { data: bookings, isLoading, refetch } = useApiQuery<Booking[]>("/bookings", { throwOnError: true })
+  const { data: bookings, isLoading, refetch } = useAxios<Booking[]>("/bookings", { throwOnError: true })
   const [dialog, setDialog] = useState<CancelDialog>({ mode: "closed" })
 
   const confirmCancel = async () => {

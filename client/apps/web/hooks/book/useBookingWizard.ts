@@ -4,18 +4,18 @@ import { useMemo, useReducer } from "react"
 import { useTranslations } from "next-intl"
 
 import { api, apiErrorMessage } from "@/lib/api/client"
-import { useApiQuery } from "@/lib/api/use-api-query"
+import { useAxios } from "@/hooks/useAxios"
 import { useAuth } from "@/lib/auth/auth-context"
 import type { Availability, MasterDataItem, Pet, Service, StaffPublic } from "@/lib/types/api"
 import { toDateParam } from "@/lib/utils/date"
-import { initialWizardState, wizardReducer } from "./wizard-state"
+import { initialWizardState, wizardReducer } from "./bookingState"
 
 /** Static reference data the wizard renders from (loaded once). */
 export type Catalog = { services: Service[]; sizes: MasterDataItem[]; staff: StaffPublic[] }
 
 /**
  * All wizard behavior in one hook — the page component is a pure view.
- * State transitions live in wizard-state.ts; this layer adds data fetching
+ * State transitions live in bookingState.ts; this layer adds data fetching
  * (SWR-style queries; page-critical ones throw into error.tsx) and the two
  * async flows (availability lookup, booking submission).
  */
@@ -26,11 +26,11 @@ export function useBookingWizard() {
 
   const [state, dispatch] = useReducer(wizardReducer, initialWizardState)
 
-  const services = useApiQuery<Service[]>("/services", { throwOnError: true })
-  const sizes = useApiQuery<MasterDataItem[]>("/master-data/pet-sizes", { throwOnError: true })
-  const staff = useApiQuery<StaffPublic[]>("/staff", { throwOnError: true })
+  const services = useAxios<Service[]>("/services", { throwOnError: true })
+  const sizes = useAxios<MasterDataItem[]>("/master-data/pet-sizes", { throwOnError: true })
+  const staff = useAxios<StaffPublic[]>("/staff", { throwOnError: true })
   // Conditional query: skipped (null key) until the session exists.
-  const petsQuery = useApiQuery<Pet[]>(user ? "/pets" : null)
+  const petsQuery = useAxios<Pet[]>(user ? "/pets" : null)
 
   const catalog: Catalog | null = useMemo(
     () =>

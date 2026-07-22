@@ -4,7 +4,6 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
 
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
@@ -14,19 +13,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Link, useRouter } from "@/i18n/navigation"
 import { apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
-
-const registerSchema = z.object( {
-  name: z.string().min( 1, "validation.required" ).max( 120, "validation.tooLong" ),
-  email: z.email( "validation.email" ),
-  password: z.string().min( 8, "validation.passwordMin" ).max( 72, "validation.tooLong" ),
-  phone: z
-    .string()
-    .regex( /^\+?[0-9\s-]{6,20}$/, "validation.phone" )
-    .or( z.literal( "" ) )
-    .optional(),
-} )
-
-type RegisterValues = z.infer<typeof registerSchema>
+import { emptyRegisterValues, registerSchema, type RegisterValues } from "@/lib/factories/authFactory"
 
 export default function RegisterPage () {
   const t = useTranslations( "auth" )
@@ -37,7 +24,7 @@ export default function RegisterPage () {
 
   const form = useForm<RegisterValues>( {
     resolver: zodResolver( registerSchema ),
-    defaultValues: { name: "", email: "", password: "", phone: "" },
+    defaultValues: emptyRegisterValues,
   } )
   const { errors, isSubmitting } = form.formState
 

@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
-import { z } from "zod"
 
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
@@ -15,13 +14,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Link, useRouter } from "@/i18n/navigation"
 import { apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
-
-const loginSchema = z.object({
-  email: z.email("validation.email"),
-  password: z.string().min(1, "validation.required"),
-})
-
-type LoginValues = z.infer<typeof loginSchema>
+import { emptyLoginValues, loginSchema, type LoginValues } from "@/lib/factories/authFactory"
 
 export default function LoginPage() {
   return (
@@ -42,7 +35,7 @@ function LoginForm() {
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: emptyLoginValues,
   })
   const { errors, isSubmitting } = form.formState
 

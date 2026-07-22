@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { Controller, useForm } from "react-hook-form"
-import { z } from "zod"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -30,39 +29,13 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { usePermissions } from "@/lib/auth/auth-context"
+import { emptyPetValues, petDefaults, petSchema, type PetValues } from "@/lib/factories/petFactory"
 import { Permissions } from "@/lib/permissions"
-import type { Pet } from "@/lib/types/api"
-import { usePets } from "./use-pets"
-
-const petSchema = z.object({
-  name: z.string().min(1, "validation.required").max(120, "validation.tooLong"),
-  breed: z.string().optional(),
-  sizeId: z.number().int("validation.required").min(1, "validation.required"),
-  birthDate: z.string().optional(),
-  notes: z.string().max(1000, "validation.tooLong").optional(),
-})
-
-type PetValues = z.infer<typeof petSchema>
-
-const emptyPetValues: PetValues = { name: "", breed: "", sizeId: 0, birthDate: "", notes: "" }
-
-function petDefaults(pet?: Pet): PetValues {
-  return pet
-    ? {
-        name: pet.name,
-        breed: pet.breed ?? "",
-        sizeId: pet.sizeId,
-        birthDate: pet.birthDate?.slice(0, 10) ?? "",
-        notes: pet.notes ?? "",
-      }
-    : emptyPetValues
-}
-
-function optionalString(value: string | undefined): string | undefined {
-  return value?.trim() ? value.trim() : undefined
-}
+import type { MasterDataItem, Pet } from "@/lib/types/api"
+import { optionalString } from "@/lib/utils/string"
 
 /** One state machine instead of open-flags + editing/deleting/error trios. */
 type DialogState =
@@ -75,7 +48,14 @@ export default function PetsPage() {
   const ta = useTranslations("auth")
   const tc = useTranslations("common")
   const { can } = usePermissions()
-  const { pets, sizes, sizesById, isLoading, reload } = usePets()
+
+  // Page-critical queries: failures render the segment's error.tsx boundary.
+  const { data: pets, isLoading: petsLoading, refetch: reload } = useAxios<Pet[]>("/pets", { throwOnError: true })
+  const { data: sizes = [], isLoading: sizesLoading } = useAxios<MasterDataItem[]>("/master-data/pet-sizes", {
+    throwOnError: true,
+  })
+  const isLoading = petsLoading || sizesLoading
+  const sizesById = useMemo(() => new Map(sizes.map((size) => [size.id, size])), [sizes])
 
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
 
@@ -128,7 +108,7 @@ export default function PetsPage() {
         <Button onClick={() => openForm()}>{t("add")}</Button>
       </div>
 
-      {isLoading || pets === null ? (
+      {isLoading || pets === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Skeleton key={index} className="h-40" />

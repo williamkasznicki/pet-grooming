@@ -18,8 +18,8 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { Link } from "@/i18n/navigation"
 import type { MasterDataItem } from "@/lib/types/api"
-import { useBookingWizard } from "./use-booking-wizard"
-import { DATE_BOUNDS, STEP_ORDER } from "./wizard-state"
+import { useBookingWizard } from "@/hooks/book/useBookingWizard"
+import { DATE_BOUNDS, STEP_ORDER } from "@/hooks/book/bookingState"
 
 function SizeBadge({ size, children }: { size: MasterDataItem | undefined; children: React.ReactNode }) {
   return (
