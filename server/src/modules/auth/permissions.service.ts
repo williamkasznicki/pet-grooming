@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { addMilliseconds, isAfter } from 'date-fns';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-type CacheEntry = { permissions: ReadonlySet<string>; expiresAt: number };
+type CacheEntry = { permissions: ReadonlySet<string>; expiresAt: Date };
 
 /**
  * Resolves a user's permission names via UserRole → RolePermission → Permission.
@@ -17,7 +18,7 @@ export class PermissionsService {
 
   async getPermissions(userId: string): Promise<ReadonlySet<string>> {
     const cached = this.cache.get(userId);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (cached && isAfter(cached.expiresAt, new Date())) {
       return cached.permissions;
     }
 
@@ -35,7 +36,7 @@ export class PermissionsService {
     const permissions: ReadonlySet<string> = new Set(
       userRoles.flatMap((ur) => ur.role.rolePermissions.map((rp) => rp.permission.name)),
     );
-    this.cache.set(userId, { permissions, expiresAt: Date.now() + PermissionsService.CACHE_TTL_MS });
+    this.cache.set(userId, { permissions, expiresAt: addMilliseconds(new Date(), PermissionsService.CACHE_TTL_MS) });
     return permissions;
   }
 

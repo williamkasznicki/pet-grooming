@@ -68,3 +68,6 @@ Short version: three dots = self-contained signed document; no dots = opaque cla
 ## Date/time policy
 
 All date math uses **`date-fns`** (+ `@date-fns/tz` for timezone-aware logic) — no hand-rolled `Date` arithmetic. Store UTC in PostgreSQL; interpret shop-local times (working hours, slots) in the shop timezone from `ShopSetting` (`shop.timezone`, default `Asia/Bangkok`). Rationale: immutable pure functions, tree-shakable, first-class TS — and avoids the classic DST/offset bugs of manual `getTime()` math.
+
+# Artifact
+<https://claude.ai/code/artifact/a262d0cc-c0d2-4a8d-bc6c-d7d9a23299f2?via=auto_preview>

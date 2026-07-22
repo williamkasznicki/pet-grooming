@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { add, isBefore, type Duration } from 'date-fns';
 import { hashPassword, verifyPassword } from '../../common/utils/password.util.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
@@ -12,13 +13,19 @@ import { PermissionsService } from './permissions.service.js';
 
 const DEFAULT_ROLE = 'Client';
 
-/** "15m" | "12h" | "30d" | "45s" → milliseconds. */
-function ttlToMs ( ttl: string ): number {
+/** "15m" | "12h" | "30d" | "45s" → date-fns Duration. */
+function ttlToDuration ( ttl: string ): Duration {
   const match = /^(\d+)([smhd])$/.exec( ttl );
   if ( !match ) throw new Error( `Invalid TTL format: ${ ttl }` );
   const value = Number( match[ 1 ] );
-  const unit = { s: 1_000, m: 60_000, h: 3_600_000, d: 86_400_000 }[ match[ 2 ] as 's' | 'm' | 'h' | 'd' ];
-  return value * unit;
+  const unit = { s: 'seconds', m: 'minutes', h: 'hours', d: 'days' }[ match[ 2 ] as 's' | 'm' | 'h' | 'd' ] as keyof Duration;
+  return { [ unit ]: value };
+}
+
+/** date-fns Duration → whole seconds (for JWT expiresIn). */
+function durationToSeconds ( duration: Duration ): number {
+  const now = new Date();
+  return Math.floor( ( add( now, duration ).getTime() - now.getTime() ) / 1_000 );
 }
 
 function sha256 ( value: string ): string {
@@ -75,7 +82,7 @@ export class AuthService {
       where: { tokenHash },
       select: { id: true, revokedAt: true, expiresAt: true, user: { select: { id: true, email: true, name: true } } },
     } );
-    if ( !stored || stored.revokedAt || stored.expiresAt < new Date() ) {
+    if ( !stored || stored.revokedAt || isBefore( stored.expiresAt, new Date() ) ) {
       throw new UnauthorizedException( ErrorMessages.INVALID_TOKEN );
     }
 
@@ -107,7 +114,7 @@ export class AuthService {
       { sub: user.id },
       {
         secret: process.env.JWT_ACCESS_SECRET!,
-        expiresIn: Math.floor( ttlToMs( process.env.JWT_ACCESS_TTL ?? '15m' ) / 1_000 ), // seconds
+        expiresIn: durationToSeconds( ttlToDuration( process.env.JWT_ACCESS_TTL ?? '15m' ) ),
       },
     );
 
@@ -116,7 +123,7 @@ export class AuthService {
       data: {
         userId: user.id,
         tokenHash: sha256( refreshToken ),
-        expiresAt: new Date( Date.now() + ttlToMs( process.env.JWT_REFRESH_TTL ?? '30d' ) ),
+        expiresAt: add( new Date(), ttlToDuration( process.env.JWT_REFRESH_TTL ?? '30d' ) ),
       },
     } );
 

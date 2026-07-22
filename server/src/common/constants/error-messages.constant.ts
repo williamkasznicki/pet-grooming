@@ -18,6 +18,16 @@ export const ErrorMessages = {
   SERVICE_NOT_FOUND: 'Service not found.',
   SERVICE_TIER_NOT_FOUND: 'Service tier not found.',
 
+  // Staff & time off
+  STAFF_NOT_FOUND: 'Staff profile not found.',
+  STAFF_PROFILE_EXISTS: 'This user already has a staff profile.',
+  WORKING_HOURS_OVERLAP: 'Working hours cannot overlap on the same weekday.',
+  TIME_OFF_NOT_FOUND: 'Time off not found.',
+  TIME_OFF_RANGE_INVALID: 'Time off requires a valid startsAt and endsAt range.',
+
+  // Availability
+  AVAILABILITY_DATE_INVALID: 'date must be in YYYY-MM-DD format.',
+
   // Shop settings
   SHOP_SETTING_NOT_FOUND: 'Shop setting not found.',
   SHOP_SETTING_VALUE_REQUIRED: 'Setting value is required.',
