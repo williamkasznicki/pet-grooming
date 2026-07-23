@@ -22,24 +22,29 @@
     "logout": "Log out"
   },
   "landing": {
-    "eyebrow": "Premium grooming",
-    "title": "Happy pets, fresh looks",
-    "subtitle": "Book a bath, groom, or nail trim with our groomers in minutes — priced fairly by your pet's weight.",
-    "cta": "Book an appointment",
-    "ctaSecondary": "See services",
-    "servicesTitle": "Our services",
-    "servicesSubtitle": "Fair prices by weight — no guessing sizes.",
-    "from": "from ฿{price}",
+    "eyebrow": "Chiang Mai spa experience",
+    "titleLead": "Happy pets,",
+    "titleAccent": "fresh looks.",
+    "heroAlt": "A happy fluffy dog enjoying a bath in a bright, calm grooming spa",
+    "subtitle": "Thai hospitality meets modern pet wellness. A serene wash-station experience, priced fairly by your pet's weight.",
+    "cta": "Book now",
+    "ctaSecondary": "Explore services",
+    "servicesTitle": "Wellness treatments",
+    "servicesSubtitle": "Tailored grooming with premium, skin-safe products in a stress-free environment.",
     "book": "Book",
-    "stepsTitle": "Booking takes a minute",
-    "step1Title": "Pick a service & your pet",
-    "step1Desc": "Tell us your pet's weight once — we price the right tier automatically.",
-    "step2Title": "Choose a time",
-    "step2Desc": "See real open slots and pick any groomer, or let us assign one.",
-    "step3Title": "Pay at the shop",
-    "step3Desc": "Instant confirmation by email. No prepayment needed.",
-    "finalTitle": "Ready for a fresh look?",
-    "finalSubtitle": "Your groomer is a few taps away."
+    "stepsTitle": "The spa journey",
+    "stepsSubtitle": "Three simple steps to a fresh, happy companion.",
+    "step1Title": "Book online",
+    "step1Desc": "Pick a service and time slot — your pet's weight prices the right tier automatically.",
+    "step2Title": "The session",
+    "step2Desc": "Drop off your pet at our serene wash station for their tailored treatment.",
+    "step3Title": "Fresh look",
+    "step3Desc": "Pick up a revitalized, beautifully styled companion. Pay at the shop.",
+    "finalTitle": "Ready for a spa day?",
+    "finalSubtitle": "Book your pet's wellness appointment today.",
+    "footerServices": "Services",
+    "footerBook": "Book an appointment",
+    "footerNote": "Thai hospitality & modern pet wellness · Chiang Mai"
   },
   "pets": {
     "title": "My Pets",
@@ -103,6 +108,8 @@
   "admin": {
     "title": "Admin",
     "nav": {
+      "panel": "Admin panel",
+      "groupManage": "Manage",
       "dashboard": "Dashboard",
       "bookings": "Bookings",
       "services": "Services",
@@ -110,7 +117,8 @@
       "staff": "Staff",
       "settings": "Settings",
       "users": "Users",
-      "backToSite": "← Back to site"
+      "backToSite": "Back to site",
+      "logout": "Log out"
     },
     "dashboard": {
       "today": "Today's bookings",

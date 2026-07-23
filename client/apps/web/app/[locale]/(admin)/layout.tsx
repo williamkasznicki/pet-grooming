@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 
-import { AdminSidebar } from "@/components/admin-sidebar"
+import { AdminShell } from "@/components/admin-shell"
 import { getSessionUser } from "@/lib/auth/get-session"
 import { can, Permissions } from "@/lib/permissions"
 
@@ -21,11 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/")
   }
 
-  return (
-    // Stacks on mobile (nav bar on top), sidebar layout from md up
-    <div className="flex min-h-svh flex-col md:flex-row">
-      <AdminSidebar />
-      <main className="flex-1 overflow-x-auto px-4 py-6 md:px-6 md:py-8">{children}</main>
-    </div>
-  )
+  // shadcn sidebar shell (application-shell1): collapsible dark navy sidebar,
+  // inset content with breadcrumb topbar; sheet overlay on mobile
+  return <AdminShell>{children}</AdminShell>
 }

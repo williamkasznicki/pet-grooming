@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { hasLocale, NextIntlClientProvider } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
-import { Anuphan, Geist_Mono, Mitr } from "next/font/google"
+import { Anuphan, Geist_Mono } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -11,11 +11,9 @@ import { getSessionUser } from "@/lib/auth/get-session"
 import { routing } from "@/i18n/routing"
 import { cn } from "@workspace/ui/lib/utils"
 
-// Body face: Anuphan — Thai loopless grotesk, native glyphs for both locales
+// Single family per the Stitch comp (Inter voice): Anuphan carries body AND
+// bold headings — Thai-native glyphs for both locales, unlike Inter.
 const anuphan = Anuphan({ subsets: ["latin", "thai"], variable: "--font-sans" })
-
-// Display face for all headings: Mitr (rounded, Thai-native)
-const mitr = Mitr({ subsets: ["latin", "thai"], weight: ["500", "600"], variable: "--font-display" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -42,7 +40,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
     <html
       lang={locale}
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", anuphan.variable, mitr.variable)}
+      className={cn("antialiased", fontMono.variable, "font-sans", anuphan.variable)}
     >
       <body>
         <NextIntlClientProvider>

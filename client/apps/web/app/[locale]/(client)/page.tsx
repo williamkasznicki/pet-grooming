@@ -1,4 +1,6 @@
+import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
+import { RiContrastDrop2Line, RiScissors2Fill, RiShowersFill } from "@remixicon/react"
 
 import { Link } from "@/i18n/navigation"
 import { nestApi } from "@/lib/api/nest"
@@ -6,10 +8,11 @@ import type { Service } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
 
 /*
- * Landing = the design system's home turf ("wash station", globals.css):
- * lagoon primary, mist secondary, Mitr headings. All colors come from tokens
- * so light/dark and future palette edits stay coherent with the app shell.
- * Signature: slow-morphing organic blob + paw-print scatter + load stagger.
+ * Landing per the approved Stitch comp ("Landing Page - Pet Grooming",
+ * project 13714251940461288007): cool blue-white canvas, lagoon CTAs, navy
+ * ink "Book now" pill, morphing lagoon blob behind the spa illustration,
+ * water-fill hover on service cards, connected 3-step journey, lagoon CTA
+ * band. All colors come from the shared tokens (globals.css).
  */
 
 type SizeRef = { id: number; code: string; minWeightKg: string | null; maxWeightKg: string | null }
@@ -29,23 +32,15 @@ async function getData(): Promise<{ services: Service[]; sizes: SizeRef[] }> {
   }
 }
 
-/** Playful stand-ins until the shop has photography; keyed loosely by service name. */
-function serviceEmoji(name: string): string {
+/** Icon per service, keyed loosely by name (comp uses cut/shower/drop symbols). */
+function ServiceIcon({ name }: { name: string }) {
   const lower = name.toLowerCase()
-  if (lower.includes("bath") || lower.includes("brush")) return "🛁"
-  if (lower.includes("nail")) return "💅"
-  if (lower.includes("groom") || lower.includes("cut")) return "✂️"
-  return "🐾"
+  const className = "text-primary size-9"
+  if (lower.includes("bath") || lower.includes("brush")) return <RiShowersFill className={className} aria-hidden />
+  if (lower.includes("groom") || lower.includes("cut") || lower.includes("nail"))
+    return <RiScissors2Fill className={className} aria-hidden />
+  return <RiContrastDrop2Line className={className} aria-hidden />
 }
-
-/** Paw print as a data-URI, scattered as a background (the brand texture). */
-const PAW = encodeURIComponent(
-  `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><g fill='%231E8A93' fill-opacity='0.08' transform='rotate(-18 24 24)'><ellipse cx='24' cy='30' rx='9' ry='7'/><circle cx='13' cy='19' r='4'/><circle cx='21' cy='14' r='4'/><circle cx='29' cy='14' r='4'/><circle cx='37' cy='19' r='4'/></g></svg>`,
-)
-const pawScatter = {
-  backgroundImage: `url("data:image/svg+xml,${PAW}")`,
-  backgroundSize: "150px 150px",
-} as const
 
 export default async function LandingPage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params
@@ -56,156 +51,181 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
 
   return (
     <div className="bg-background text-foreground">
-      {/* Signature blob morph — off under reduced motion */}
+      {/* Signature: morphing lagoon blob + water-fill hover (off under reduced motion) */}
       <style>{`
-        @keyframes blob-morph {
-          0%, 100% { border-radius: 58% 42% 46% 54% / 52% 48% 58% 42%; }
-          50% { border-radius: 44% 56% 58% 42% / 46% 54% 44% 56%; }
+        .lagoon-blob {
+          background: linear-gradient(135deg, oklch(0.70 0.115 183 / 0.2) 0%, oklch(0.70 0.115 183 / 0.05) 100%);
+          border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
         }
-        .blob { border-radius: 58% 42% 46% 54% / 52% 48% 58% 42%; }
+        @keyframes blob-morph {
+          0%, 100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
+          34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
+          67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; }
+        }
+        .water-fill { position: relative; overflow: hidden; }
+        .water-fill::before {
+          content: ""; position: absolute; inset: auto 0 0 0; height: 0;
+          background: oklch(0.70 0.115 183 / 0.1); z-index: 0;
+        }
         @media (prefers-reduced-motion: no-preference) {
-          .blob-animate { animation: blob-morph 9s ease-in-out infinite; }
+          .lagoon-blob { animation: blob-morph 8s ease-in-out infinite; }
+          .water-fill::before { transition: height 0.5s ease-out; }
+          .water-fill:hover::before { height: 100%; }
         }
       `}</style>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden" style={pawScatter}>
-        <div className="mx-auto grid w-full max-w-5xl items-center gap-10 px-4 py-16 sm:grid-cols-2 sm:py-24">
-          <div className="flex flex-col items-start gap-5">
-            <p className="animate-rise bg-primary text-primary-foreground rounded-full px-4 py-1 text-xs font-semibold tracking-widest uppercase">
-              {t("eyebrow")}
-            </p>
-            <h1
-              className="animate-rise text-4xl leading-tight font-semibold text-balance sm:text-5xl"
-              style={{ "--rise-delay": "80ms" } as React.CSSProperties}
+      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 overflow-hidden px-4 py-16 lg:flex-row lg:py-28">
+        <div className="z-10 flex flex-1 flex-col items-start gap-6">
+          <p className="animate-rise bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
+            <RiContrastDrop2Line className="size-4" aria-hidden />
+            {t("eyebrow")}
+          </p>
+          <h1
+            className="animate-rise max-w-2xl text-4xl leading-tight text-balance md:text-5xl"
+            style={{ "--rise-delay": "80ms" } as React.CSSProperties}
+          >
+            {t("titleLead")} <span className="text-primary">{t("titleAccent")}</span>
+          </h1>
+          <p
+            className="animate-rise text-muted-foreground max-w-xl"
+            style={{ "--rise-delay": "160ms" } as React.CSSProperties}
+          >
+            {t("subtitle")}
+          </p>
+          <div
+            className="animate-rise flex flex-wrap items-center gap-4 pt-2"
+            style={{ "--rise-delay": "240ms" } as React.CSSProperties}
+          >
+            <Link
+              href="/book"
+              className="bg-primary text-primary-foreground shadow-primary/20 focus-visible:ring-ring rounded-full px-8 py-3 text-sm font-medium shadow-[0_4px_12px] transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              {t("title")}
-            </h1>
-            <p
-              className="animate-rise max-w-prose text-lg opacity-80"
-              style={{ "--rise-delay": "160ms" } as React.CSSProperties}
+              {t("cta")}
+            </Link>
+            <a
+              href="#services"
+              className="border-border hover:border-primary hover:text-primary focus-visible:ring-ring rounded-full border px-8 py-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
-              {t("subtitle")}
-            </p>
-            <div
-              className="animate-rise flex flex-wrap gap-3"
-              style={{ "--rise-delay": "240ms" } as React.CSSProperties}
-            >
-              <Link
-                href="/book"
-                className="bg-primary text-primary-foreground shadow-primary/25 focus-visible:ring-ring rounded-full px-7 py-3 font-semibold shadow-lg transition-transform hover:scale-[1.03] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                {t("cta")}
-              </Link>
-              <a
-                href="#services"
-                className="border-primary text-primary hover:bg-secondary focus-visible:ring-ring rounded-full border-2 px-7 py-3 font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                {t("ctaSecondary")}
-              </a>
-            </div>
+              {t("ctaSecondary")}
+            </a>
           </div>
+        </div>
 
-          <div className="relative mx-auto flex items-center justify-center">
-            <div className="blob blob-animate bg-primary flex size-64 items-center justify-center sm:size-80">
-              <span className="text-8xl drop-shadow-lg sm:text-9xl" role="img" aria-label="dog">
-                🐕
-              </span>
-            </div>
-            <span className="absolute -top-2 right-2 text-3xl opacity-60">🐾</span>
-            <span className="absolute bottom-4 -left-2 rotate-[-20deg] text-2xl opacity-40">🐾</span>
-          </div>
+        <div className="relative flex aspect-square w-full max-w-lg flex-1 items-center justify-center">
+          <div className="lagoon-blob absolute inset-0 -z-10" aria-hidden />
+          <Image
+            src="/hero-spa.png"
+            alt={t("heroAlt")}
+            width={376}
+            height={168}
+            priority
+            className="shadow-primary/10 relative z-10 w-4/5 rounded-2xl shadow-[0_8px_30px]"
+          />
         </div>
       </section>
 
-      {/* ── Services ────────────────────────────────────────────────── */}
+      {/* ── Services (bento grid) ───────────────────────────────────── */}
       {services.length > 0 && (
-        <section id="services" className="bg-secondary">
-          <div className="mx-auto w-full max-w-5xl px-4 py-16">
-            <h2 className="text-center text-3xl font-semibold text-balance">{t("servicesTitle")}</h2>
-            <p className="mt-2 text-center opacity-70">{t("servicesSubtitle")}</p>
-
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {services.map((service) => {
-                const prices = service.tiers.map((tier) => Number(tier.priceThb))
-                const from = prices.length > 0 ? Math.min(...prices) : null
-                return (
-                  <div
-                    key={service.id}
-                    className="bg-card text-card-foreground flex flex-col items-center gap-3 rounded-3xl p-6 text-center shadow-sm transition-shadow hover:shadow-md"
-                  >
-                    <div className="blob bg-primary/10 flex size-24 items-center justify-center">
-                      <span className="text-4xl" aria-hidden>
-                        {serviceEmoji(service.name)}
-                      </span>
+        <section id="services" className="bg-muted/50 px-4 py-24">
+          <div className="mx-auto w-full max-w-6xl">
+            <div className="mb-16 text-center">
+              <h2 className="mb-4 text-2xl font-semibold">{t("servicesTitle")}</h2>
+              <p className="text-muted-foreground mx-auto max-w-2xl">{t("servicesSubtitle")}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className="water-fill bg-card border-border/60 hover:border-primary/50 rounded-xl border p-8 shadow-sm transition-colors"
+                >
+                  <div className="relative z-10 flex h-full flex-col items-start gap-2">
+                    <div className="mb-4">
+                      <ServiceIcon name={service.name} />
                     </div>
                     <h3 className="text-xl font-semibold">{service.name}</h3>
-                    {service.description && <p className="text-sm opacity-70">{service.description}</p>}
-                    <div className="flex flex-wrap justify-center gap-1.5">
+                    {service.description && <p className="text-muted-foreground mb-4">{service.description}</p>}
+                    <div className="mt-auto flex flex-wrap gap-2">
                       {service.tiers.map((tier) => (
                         <span
                           key={tier.id}
-                          className="bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 text-xs font-medium"
+                          className="bg-accent text-accent-foreground rounded-md px-3 py-1 font-mono text-sm"
                         >
                           {formatBand(sizeOf(tier.sizeId))} ฿{Number(tier.priceThb)}
                         </span>
                       ))}
                     </div>
-                    <div className="mt-auto flex w-full items-center justify-between pt-3">
-                      {from !== null && (
-                        <span className="text-primary font-semibold">{t("from", { price: from })}</span>
-                      )}
-                      <Link
-                        href="/book"
-                        className="bg-primary text-primary-foreground focus-visible:ring-ring rounded-full px-5 py-2 text-sm font-semibold transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                      >
-                        {t("book")}
-                      </Link>
-                    </div>
+                    <Link href="/book" className="text-primary mt-3 text-sm font-medium hover:underline">
+                      {t("book")} →
+                    </Link>
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* ── How it works (a real sequence — numbers carry meaning) ───── */}
-      <section className="relative" style={pawScatter}>
-        <div className="mx-auto w-full max-w-5xl px-4 py-16">
-          <h2 className="text-center text-3xl font-semibold">{t("stepsTitle")}</h2>
-          <ol className="mt-10 grid gap-8 sm:grid-cols-3">
-            {([1, 2, 3] as const).map((step) => (
-              <li key={step} className="flex flex-col items-center gap-3 text-center">
-                <span
-                  className="blob bg-primary text-primary-foreground flex size-14 items-center justify-center text-xl font-semibold"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {step}
-                </span>
-                <h3 className="text-lg font-semibold">{t(`step${step}Title`)}</h3>
-                <p className="max-w-64 text-sm opacity-70">{t(`step${step}Desc`)}</p>
-              </li>
-            ))}
-          </ol>
+      {/* ── The journey (real sequence — connected steps) ────────────── */}
+      <section className="mx-auto w-full max-w-6xl px-4 py-24">
+        <div className="mb-16 text-center">
+          <h2 className="mb-4 text-2xl font-semibold">{t("stepsTitle")}</h2>
+          <p className="text-muted-foreground">{t("stepsSubtitle")}</p>
+        </div>
+        <div className="relative grid grid-cols-1 gap-12 md:grid-cols-3">
+          <div
+            className="bg-border/60 absolute top-8 left-0 -z-10 hidden h-px w-full -translate-y-1/2 md:block"
+            aria-hidden
+          />
+          {([1, 2, 3] as const).map((step) => (
+            <div key={step} className="bg-background flex flex-col items-center px-4 text-center">
+              <div
+                className={
+                  step === 2
+                    ? "bg-primary text-primary-foreground shadow-primary/30 border-background mb-6 flex size-16 items-center justify-center rounded-full border-4 shadow-[0_4px_12px]"
+                    : "bg-accent text-primary border-background mb-6 flex size-16 items-center justify-center rounded-full border-4"
+                }
+              >
+                <span className="text-xl font-semibold">{step}</span>
+              </div>
+              <h4 className="mb-2 text-sm font-bold tracking-wide uppercase">{t(`step${step}Title`)}</h4>
+              <p className="text-muted-foreground max-w-64">{t(`step${step}Desc`)}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* ── Closing CTA band ─────────────────────────────────────────── */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-4 px-4 py-16 text-center sm:flex-row sm:justify-between sm:text-left">
+      {/* ── CTA band ─────────────────────────────────────────────────── */}
+      <section className="bg-primary px-4 py-16">
+        <div className="text-primary-foreground mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-8 text-center md:flex-row md:text-left">
           <div>
-            <h2 className="text-3xl font-semibold text-balance">{t("finalTitle")}</h2>
-            <p className="mt-1 opacity-85">{t("finalSubtitle")}</p>
+            <h2 className="mb-2 text-3xl text-balance md:text-4xl">{t("finalTitle")}</h2>
+            <p className="opacity-80">{t("finalSubtitle")}</p>
           </div>
           <Link
             href="/book"
-            className="bg-card text-primary focus-visible:ring-ring shrink-0 rounded-full px-8 py-3 font-semibold shadow-lg transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className="bg-foreground text-background focus-visible:ring-ring rounded-full px-8 py-4 text-sm font-medium whitespace-nowrap shadow-lg transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
           >
-            {t("cta")} 🐾
+            {t("cta")}
           </Link>
         </div>
       </section>
+
+      {/* ── Footer ───────────────────────────────────────────────────── */}
+      <footer className="border-border/60 bg-muted/50 border-t px-4 py-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center gap-4">
+          <p className="text-primary text-lg font-bold">Pet Grooming</p>
+          <div className="flex flex-wrap justify-center gap-4 text-sm">
+            <a href="#services" className="text-muted-foreground hover:text-primary transition-colors">
+              {t("footerServices")}
+            </a>
+            <Link href="/book" className="text-muted-foreground hover:text-primary transition-colors">
+              {t("footerBook")}
+            </Link>
+          </div>
+          <p className="text-muted-foreground text-sm">{t("footerNote")}</p>
+        </div>
+      </footer>
     </div>
   )
 }

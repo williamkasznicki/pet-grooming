@@ -49,11 +49,12 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
   - `(client)/` — booking-facing pages
   - `(admin)/` — staff/admin pages behind RBAC middleware
   - Each group has its own root layout, nav, and theme.
-- **Design system: "wash station" (locked 2026-07-23, supersedes the base-lyra-neutral rule)** — single source of truth is `client/packages/ui/src/styles/globals.css`:
-  - Palette (oklch tokens, light + dark): **lagoon** teal primary ≈ `#1E8A93`, deep `#14666E`, ink text `#143B3E`, mist surfaces `#E9F6F7`, warm **collar amber** as the chart counterpoint. Backgrounds are faintly teal-tinted, never pure white.
-  - Type: **Mitr** (rounded, Thai-native) on every `h1–h4` via `--font-display`; body is **Anuphan** (Thai loopless grotesk) via `--font-sans`; **Geist Mono** for codes/data. Both locales get native glyphs.
-  - Shape/motion: radius `0.8rem`; `animate-rise` utility for staggered page-load reveals (`--rise-delay`); landing blob morph. All motion respects `prefers-reduced-motion`.
-  - Signature: the **admin sidebar stays deep-teal ink even in light mode** (`--sidebar-*` tokens); components must use tokens, never hex literals (master-data badge colors are the one data-driven exception).
+- **Design system: "spa lagoon" (locked 2026-07-23, from the approved Stitch comp — project `13714251940461288007`; supersedes "wash station")** — single source of truth is `client/packages/ui/src/styles/globals.css`:
+  - Palette (oklch tokens, light + dark): **lagoon** `#14b8a6` primary CTAs/accents, deep teal `#006b5f` brand text, **navy ink** `#0b1c30` text + dark pill buttons, cool blue-white `#f8f9ff` canvas, sky-blue `#d3e4fe` chips/badges. Dark mode is navy-based.
+  - Type: **Anuphan** everywhere (`--font-sans`) — bold tight-tracked (`-0.02em`) headings stand in for the comp's Inter with native Thai glyphs; **Geist Mono** for prices/codes.
+  - Shape/motion: radius `0.75rem`, fully-rounded pills; `animate-rise` staggered reveals; landing `lagoon-blob` morph + `water-fill` card hover. All motion respects `prefers-reduced-motion`.
+  - Signature: **dark navy admin sidebar with lagoon active pill** (`--sidebar-*` tokens), shadcn sidebar shell (`components/admin-shell.tsx`, from shadcnblocks `application-shell1`: collapsible to icons, sheet on mobile, breadcrumb topbar). Components must use tokens, never hex literals (master-data badge colors are the one data-driven exception).
+  - Stitch comps are the reference for screens (landing, wizard, bookings, admin dashboard/bookings/roles); fetch via the `stitch` MCP server.
 - Booking rules shown to clients come from `GET /booking-rules` (public projection of `ShopSetting`) — rendered by `components/booking-rules.tsx`, never hardcoded.
 - Design workflow: `frontend-design` skill for direction (constrained to these tokens), `design-system` for token generation/audit, `web-design-guidelines` for review, `dataviz` for admin charts.
 
