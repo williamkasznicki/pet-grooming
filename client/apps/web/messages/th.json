@@ -74,6 +74,66 @@
     "viewBookings": "ดูการจองของฉัน",
     "slotTaken": "คิวนี้เพิ่งถูกจองไป — กรุณาเลือกเวลาอื่น"
   },
+  "admin": {
+    "title": "ผู้ดูแลระบบ",
+    "nav": {
+      "dashboard": "ภาพรวม",
+      "bookings": "การจอง",
+      "services": "บริการ",
+      "staff": "พนักงาน",
+      "settings": "ตั้งค่าร้าน",
+      "users": "ผู้ใช้",
+      "backToSite": "← กลับหน้าร้าน"
+    },
+    "dashboard": {
+      "today": "การจองวันนี้",
+      "upcoming": "กำลังจะมาถึง",
+      "noBookings": "วันนี้ไม่มีการจอง",
+      "stat": "{count} {status}"
+    },
+    "bookings": {
+      "title": "การจอง",
+      "filterAll": "ทั้งหมด",
+      "filterToday": "วันนี้",
+      "filterUpcoming": "กำลังจะมาถึง",
+      "colWhen": "เวลา",
+      "colClient": "ลูกค้า",
+      "colPet": "สัตว์เลี้ยง",
+      "colService": "บริการ",
+      "colStaff": "ช่าง",
+      "colPrice": "ราคา",
+      "colStatus": "สถานะ",
+      "colPayment": "การชำระเงิน",
+      "colActions": "จัดการ",
+      "start": "เริ่มบริการ",
+      "complete": "เสร็จสิ้น",
+      "noShow": "ไม่มาตามนัด",
+      "cancel": "ยกเลิก",
+      "markPaid": "รับชำระแล้ว",
+      "empty": "ไม่มีการจองตามตัวกรองนี้"
+    },
+    "services": {
+      "title": "บริการและราคา",
+      "add": "เพิ่มบริการ",
+      "edit": "แก้ไขบริการ",
+      "name": "ชื่อบริการ",
+      "description": "รายละเอียด",
+      "active": "เปิดใช้งาน",
+      "tiers": "ราคาตามขนาด",
+      "price": "ราคา (บาท)",
+      "durationMin": "ระยะเวลา (นาที)",
+      "deleteConfirm": "ลบบริการนี้?",
+      "tierFor": "ขนาด {size}"
+    },
+    "settings": {
+      "title": "ตั้งค่าร้าน",
+      "key": "รายการ",
+      "value": "ค่า",
+      "save": "บันทึก",
+      "saved": "บันทึกแล้ว",
+      "invalidJson": "ค่าต้องเป็น JSON ที่ถูกต้อง"
+    }
+  },
   "auth": {
     "loginTitle": "ยินดีต้อนรับกลับ",
     "registerTitle": "สร้างบัญชีของคุณ",

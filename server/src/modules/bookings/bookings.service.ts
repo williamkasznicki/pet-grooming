@@ -144,6 +144,10 @@ export class BookingsService {
     if (booking.paymentStatus.code === 'PAID') {
       throw new ConflictException(ErrorMessages.BOOKING_ALREADY_PAID);
     }
+    // NO_SHOW stays payable (shops may charge a fee); CANCELLED never is.
+    if (booking.status.code === 'CANCELLED') {
+      throw new ConflictException(ErrorMessages.BOOKING_CANCELLED_UNPAYABLE);
+    }
     const paid = await this.bookingsRepository.findPaymentStatusByCode('PAID');
     if (!paid) throw new NotFoundException(ErrorMessages.RECORD_NOT_FOUND);
 

@@ -74,6 +74,66 @@
     "viewBookings": "View my bookings",
     "slotTaken": "That slot was just taken — pick another one."
   },
+  "admin": {
+    "title": "Admin",
+    "nav": {
+      "dashboard": "Dashboard",
+      "bookings": "Bookings",
+      "services": "Services",
+      "staff": "Staff",
+      "settings": "Settings",
+      "users": "Users",
+      "backToSite": "← Back to site"
+    },
+    "dashboard": {
+      "today": "Today's bookings",
+      "upcoming": "Upcoming",
+      "noBookings": "No bookings today.",
+      "stat": "{count} {status}"
+    },
+    "bookings": {
+      "title": "Bookings",
+      "filterAll": "All",
+      "filterToday": "Today",
+      "filterUpcoming": "Upcoming",
+      "colWhen": "When",
+      "colClient": "Client",
+      "colPet": "Pet",
+      "colService": "Service",
+      "colStaff": "Groomer",
+      "colPrice": "Price",
+      "colStatus": "Status",
+      "colPayment": "Payment",
+      "colActions": "Actions",
+      "start": "Start",
+      "complete": "Complete",
+      "noShow": "No-show",
+      "cancel": "Cancel",
+      "markPaid": "Mark paid",
+      "empty": "No bookings match this filter."
+    },
+    "services": {
+      "title": "Services & Prices",
+      "add": "Add service",
+      "edit": "Edit service",
+      "name": "Name",
+      "description": "Description",
+      "active": "Active",
+      "tiers": "Size tiers",
+      "price": "Price (THB)",
+      "durationMin": "Duration (min)",
+      "deleteConfirm": "Delete this service?",
+      "tierFor": "Tier for size {size}"
+    },
+    "settings": {
+      "title": "Shop Settings",
+      "key": "Setting",
+      "value": "Value",
+      "save": "Save",
+      "saved": "Saved",
+      "invalidJson": "Value must be valid JSON"
+    }
+  },
   "auth": {
     "loginTitle": "Welcome back",
     "registerTitle": "Create your account",

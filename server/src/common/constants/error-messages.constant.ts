@@ -44,6 +44,7 @@ export const ErrorMessages = {
   BOOKING_STATUS_TRANSITION_INVALID: 'This status change is not allowed from the current status.',
   BOOKING_CUTOFF_PASSED: 'The cancellation window for this booking has passed.',
   BOOKING_ALREADY_PAID: 'This booking is already marked as paid.',
+  BOOKING_CANCELLED_UNPAYABLE: 'A cancelled booking cannot be marked as paid.',
 
   // Auth
   INVALID_CREDENTIALS: 'Invalid email or password.',
