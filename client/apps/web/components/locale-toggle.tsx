@@ -1,6 +1,7 @@
 "use client"
 
 import { useLocale } from "next-intl"
+import { RiTranslate2 } from "@remixicon/react"
 
 import { Button } from "@workspace/ui/components/button"
 
@@ -17,8 +18,15 @@ export function LocaleToggle({ className }: { className?: string }) {
   }
 
   return (
-    <Button variant="ghost" size="sm" className={className} onClick={switchLocale}>
-      {locale === "en" ? "ไทย" : "EN"}
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      className={className}
+      aria-label={locale === "en" ? "เปลี่ยนเป็นภาษาไทย" : "Switch to English"}
+      title={locale === "en" ? "ไทย" : "EN"}
+      onClick={switchLocale}
+    >
+      <RiTranslate2 />
     </Button>
   )
 }

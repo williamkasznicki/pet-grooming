@@ -130,7 +130,12 @@
       "statRevenue": "Revenue today",
       "viewAll": "View all",
       "noBookings": "No bookings today.",
-      "next7": "{count, plural, =0 {No confirmed bookings} one {# confirmed booking} other {# confirmed bookings}} in the next 7 days."
+      "next7": "{count, plural, =0 {No confirmed bookings} one {# confirmed booking} other {# confirmed bookings}} in the next 7 days.",
+      "chartBookings": "Bookings",
+      "chartRevenue": "Revenue (฿)",
+      "chartBookingsTitle": "Bookings — last {days} days",
+      "chartRevenueTitle": "Paid revenue — last {days} days",
+      "chartByServiceTitle": "Bookings by service"
     },
     "bookings": {
       "title": "Bookings",
@@ -162,8 +167,10 @@
       "title": "Services & Prices",
       "add": "Add service",
       "edit": "Edit service",
-      "name": "Name",
-      "description": "Description",
+      "name": "Name (English)",
+      "description": "Description (English)",
+      "nameTh": "Name (Thai)",
+      "descriptionTh": "Description (Thai)",
       "active": "Active",
       "tiers": "Size tiers",
       "price": "Price (THB)",

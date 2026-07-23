@@ -27,6 +27,8 @@ export class ServicesService {
       const service = await this.servicesRepository.create({
         name: dto.name,
         description: dto.description,
+        nameTh: dto.nameTh,
+        descriptionTh: dto.descriptionTh,
         active: dto.active,
       });
       return ServiceResponseDto.from(service);
@@ -42,6 +44,8 @@ export class ServicesService {
       const service = await this.servicesRepository.update(id, {
         name: dto.name,
         description: dto.description,
+        nameTh: dto.nameTh,
+        descriptionTh: dto.descriptionTh,
         active: dto.active,
       });
       return ServiceResponseDto.from(service);

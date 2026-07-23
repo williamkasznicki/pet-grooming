@@ -13,6 +13,18 @@ export class CreateServiceDto {
   @MaxLength(1000)
   description?: string;
 
+  @ApiPropertyOptional({ maxLength: 120, example: 'อาบน้ำตัดขน', description: 'Thai display name' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  nameTh?: string;
+
+  @ApiPropertyOptional({ maxLength: 1000, description: 'Thai description' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  descriptionTh?: string;
+
   @ApiPropertyOptional({ default: true })
   @IsOptional()
   @IsBoolean()

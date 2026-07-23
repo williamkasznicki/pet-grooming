@@ -31,6 +31,7 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
+  --color-chart-mark: var(--chart-mark);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
@@ -87,6 +88,8 @@
   --chart-3: oklch(0.71 0.075 258);
   --chart-4: oklch(0.24 0.045 250);
   --chart-5: oklch(0.83 0.075 183);
+  /* Single-series chart mark — validated ≥3:1 vs the card surface (dataviz) */
+  --chart-mark: #0d9488;
   --radius: 0.75rem;
   /* Signature: dark navy admin sidebar (even in light mode), lagoon active pill */
   --sidebar: oklch(0.26 0.05 235);
@@ -123,6 +126,7 @@
   --chart-3: oklch(0.75 0.07 258);
   --chart-4: oklch(0.9 0.02 250);
   --chart-5: oklch(0.5 0.085 181);
+  --chart-mark: #10a08e;
   --sidebar: oklch(0.19 0.038 248);
   --sidebar-foreground: oklch(0.9 0.02 220);
   --sidebar-primary: oklch(0.81 0.115 180);

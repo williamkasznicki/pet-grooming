@@ -40,6 +40,12 @@ export class ServiceResponseDto {
   @ApiProperty({ type: String, nullable: true })
   description!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: 'Thai display name (falls back to name)' })
+  nameTh!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Thai description (falls back to description)' })
+  descriptionTh!: string | null;
+
   @ApiProperty()
   active!: boolean;
 
@@ -57,6 +63,8 @@ export class ServiceResponseDto {
       id: service.id,
       name: service.name,
       description: service.description,
+      nameTh: service.nameTh,
+      descriptionTh: service.descriptionTh,
       active: service.active,
       createdAt: service.createdAt.toISOString(),
       updatedAt: service.updatedAt.toISOString(),

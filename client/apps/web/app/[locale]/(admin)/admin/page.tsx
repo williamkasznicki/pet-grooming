@@ -23,8 +23,9 @@ import {
 
 import { useAxios } from "@/hooks/useAxios"
 import { Link } from "@/i18n/navigation"
-import type { Booking } from "@/lib/types/api"
+import type { Booking, Service } from "@/lib/types/api"
 import { toDateParam } from "@/lib/utils/date"
+import { DashboardCharts } from "./dashboard-charts"
 
 /*
  * Overview per the Stitch admin comp: stat cards with lagoon icon chips
@@ -76,6 +77,7 @@ export default function AdminDashboardPage() {
   const format = useFormatter()
 
   const { data: bookings, isLoading } = useAxios<Booking[]>("/bookings", { throwOnError: true })
+  const { data: services } = useAxios<Service[]>("/services")
 
   const stats = useMemo(() => {
     const todayKey = toDateParam(new Date())
@@ -180,6 +182,8 @@ export default function AdminDashboardPage() {
           <p className="text-muted-foreground text-sm">
             {t("next7", { count: stats.next7Days })}
           </p>
+
+          <DashboardCharts bookings={bookings} services={services ?? []} />
         </>
       )}
     </div>

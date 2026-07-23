@@ -102,6 +102,8 @@ export default function AdminServicesPage() {
     const payload = {
       name: values.name.trim(),
       description: optionalString(values.description),
+      nameTh: optionalString(values.nameTh),
+      descriptionTh: optionalString(values.descriptionTh),
       active: values.active,
     }
     try {
@@ -300,6 +302,20 @@ export default function AdminServicesPage() {
                   {...form.register("description")}
                 />
                 {errors.description?.message && <FieldError>{ta(errors.description.message)}</FieldError>}
+              </Field>
+              <Field data-invalid={!!errors.nameTh}>
+                <FieldLabel htmlFor="service-name-th">{t("nameTh")}</FieldLabel>
+                <Input id="service-name-th" aria-invalid={!!errors.nameTh} {...form.register("nameTh")} />
+                {errors.nameTh?.message && <FieldError>{ta(errors.nameTh.message)}</FieldError>}
+              </Field>
+              <Field data-invalid={!!errors.descriptionTh}>
+                <FieldLabel htmlFor="service-description-th">{t("descriptionTh")}</FieldLabel>
+                <Textarea
+                  id="service-description-th"
+                  aria-invalid={!!errors.descriptionTh}
+                  {...form.register("descriptionTh")}
+                />
+                {errors.descriptionTh?.message && <FieldError>{ta(errors.descriptionTh.message)}</FieldError>}
               </Field>
               <Field orientation="horizontal" data-invalid={!!errors.active}>
                 <Input id="service-active" type="checkbox" className="size-4" {...form.register("active")} />

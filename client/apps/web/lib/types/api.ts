@@ -38,10 +38,21 @@ export type Service = {
   id: string
   name: string
   description: string | null
+  /** Thai display strings — fall back to name/description when null. */
+  nameTh: string | null
+  descriptionTh: string | null
   active: boolean
   createdAt: string
   updatedAt: string
   tiers: ServiceTier[]
+}
+
+/** Locale-aware service display strings (th falls back to the English fields). */
+export function serviceDisplay(service: Service, locale: string): { name: string; description: string | null } {
+  if (locale === "th") {
+    return { name: service.nameTh ?? service.name, description: service.descriptionTh ?? service.description }
+  }
+  return { name: service.name, description: service.description }
 }
 
 export type StaffPublic = {

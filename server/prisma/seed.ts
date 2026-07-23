@@ -64,10 +64,12 @@ const roles: { name: string; group: string; permissions: string[] }[] = [
 ];
 
 /** Starter services with per-size tiers (S/M/L/XL) — admin-editable afterwards. */
-const services: { name: string; description: string; tiers: { size: string; priceThb: string; durationMin: number }[] }[] = [
+const services: { name: string; description: string; nameTh: string; descriptionTh: string; tiers: { size: string; priceThb: string; durationMin: number }[] }[] = [
   {
     name: 'Bath & Brush',
     description: 'Bath, blow-dry, and brush-out',
+    nameTh: 'อาบน้ำ & แปรงขน',
+    descriptionTh: 'อาบน้ำ เป่าแห้ง และแปรงขนให้ฟูสวย',
     tiers: [
       { size: 'S', priceThb: '350.00', durationMin: 45 },
       { size: 'M', priceThb: '450.00', durationMin: 60 },
@@ -78,6 +80,8 @@ const services: { name: string; description: string; tiers: { size: string; pric
   {
     name: 'Full Groom',
     description: 'Bath, haircut, nails, ears, and finishing',
+    nameTh: 'กรูมมิ่งครบชุด',
+    descriptionTh: 'อาบน้ำ ตัดขน ตัดเล็บ เช็ดหู และตกแต่งทรง',
     tiers: [
       { size: 'S', priceThb: '690.00', durationMin: 90 },
       { size: 'M', priceThb: '790.00', durationMin: 105 },
@@ -88,6 +92,8 @@ const services: { name: string; description: string; tiers: { size: string; pric
   {
     name: 'Nail Trim',
     description: 'Nail clipping and filing',
+    nameTh: 'ตัดเล็บ',
+    descriptionTh: 'ตัดและตะไบเล็บอย่างอ่อนโยน',
     tiers: [
       { size: 'S', priceThb: '150.00', durationMin: 15 },
       { size: 'M', priceThb: '150.00', durationMin: 15 },
@@ -141,7 +147,17 @@ async function main () {
   // (create once, never clobber admin edits); tiers upsert on serviceId+sizeId.
   for ( const svc of services ) {
     const existing = await prisma.service.findFirst( { where: { name: svc.name, deletedAt: null }, select: { id: true } } );
-    const service = existing ?? ( await prisma.service.create( { data: { name: svc.name, description: svc.description } } ) );
+    const service = existing ?? ( await prisma.service.create( {
+      data: { name: svc.name, description: svc.description, nameTh: svc.nameTh, descriptionTh: svc.descriptionTh },
+    } ) );
+    // Fill Thai strings on rows that predate service_i18n — only when never set,
+    // so admin edits survive reseeds
+    if ( existing ) {
+      await prisma.service.updateMany( {
+        where: { id: existing.id, nameTh: null },
+        data: { nameTh: svc.nameTh, descriptionTh: svc.descriptionTh },
+      } );
+    }
     for ( const tier of svc.tiers ) {
       const size = await prisma.mdPetSize.findUniqueOrThrow( { where: { code: tier.size }, select: { id: true } } );
       await prisma.serviceTier.upsert( {

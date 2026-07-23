@@ -4,7 +4,7 @@ import { RiContrastDrop2Line, RiScissors2Fill, RiShowersFill } from "@remixicon/
 
 import { Link } from "@/i18n/navigation"
 import { nestApi } from "@/lib/api/nest"
-import type { Service } from "@/lib/types/api"
+import { serviceDisplay, type MasterDataItem, type Service } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
 
 /*
@@ -15,13 +15,11 @@ import { formatBand } from "@/lib/utils/weight"
  * band. All colors come from the shared tokens (globals.css).
  */
 
-type SizeRef = { id: number; code: string; minWeightKg: string | null; maxWeightKg: string | null }
-
-async function getData(): Promise<{ services: Service[]; sizes: SizeRef[] }> {
+async function getData(): Promise<{ services: Service[]; sizes: MasterDataItem[] }> {
   try {
     const [services, sizes] = await Promise.all([
       nestApi.get<Service[]>("/services"),
-      nestApi.get<SizeRef[]>("/master-data/pet-sizes"),
+      nestApi.get<MasterDataItem[]>("/master-data/pet-sizes"),
     ])
     return {
       services: services.status === 200 ? services.data : [],
@@ -62,6 +60,12 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
           34% { border-radius: 70% 30% 50% 50% / 30% 30% 70% 70%; }
           67% { border-radius: 100% 60% 60% 100% / 100% 100% 60% 60%; }
         }
+        .blob-mask { border-radius: 62% 38% 46% 54% / 55% 46% 54% 45%; }
+        @keyframes blob-mask-morph {
+          0%, 100% { border-radius: 62% 38% 46% 54% / 55% 46% 54% 45%; }
+          34% { border-radius: 44% 56% 62% 38% / 42% 58% 42% 58%; }
+          67% { border-radius: 54% 46% 38% 62% / 60% 40% 58% 42%; }
+        }
         .water-fill { position: relative; overflow: hidden; }
         .water-fill::before {
           content: ""; position: absolute; inset: auto 0 0 0; height: 0;
@@ -69,6 +73,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
         }
         @media (prefers-reduced-motion: no-preference) {
           .lagoon-blob { animation: blob-morph 8s ease-in-out infinite; }
+          .blob-mask { animation: blob-mask-morph 12s ease-in-out infinite; }
           .water-fill::before { transition: height 0.5s ease-out; }
           .water-fill:hover::before { height: 100%; }
         }
@@ -112,16 +117,13 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
           </div>
         </div>
 
-        <div className="relative flex aspect-square w-full max-w-lg flex-1 items-center justify-center">
-          <div className="lagoon-blob absolute inset-0 -z-10" aria-hidden />
-          <Image
-            src="/hero-spa.png"
-            alt={t("heroAlt")}
-            width={376}
-            height={168}
-            priority
-            className="shadow-primary/10 relative z-10 w-4/5 rounded-2xl shadow-[0_8px_30px]"
-          />
+        <div className="relative w-full max-w-xl flex-1">
+          {/* Offset gradient blob behind gives the mask depth */}
+          <div className="lagoon-blob absolute -inset-4 translate-x-4 translate-y-4 rotate-6" aria-hidden />
+          {/* Signature: the illustration itself is clipped by the morphing blob */}
+          <div className="blob-mask shadow-primary/15 relative aspect-[5/4] w-full overflow-hidden shadow-[0_12px_40px]">
+            <Image src="/hero-spa.png" alt={t("heroAlt")} fill priority className="object-cover" sizes="(min-width: 1024px) 36rem, 100vw" />
+          </div>
         </div>
       </section>
 
@@ -134,33 +136,45 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
               <p className="text-muted-foreground mx-auto max-w-2xl">{t("servicesSubtitle")}</p>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {services.map((service) => (
-                <div
-                  key={service.id}
-                  className="water-fill bg-card border-border/60 hover:border-primary/50 rounded-xl border p-8 shadow-sm transition-colors"
-                >
-                  <div className="relative z-10 flex h-full flex-col items-start gap-2">
-                    <div className="mb-4">
-                      <ServiceIcon name={service.name} />
+              {services.map((service) => {
+                const display = serviceDisplay(service, locale)
+                return (
+                  <div
+                    key={service.id}
+                    className="water-fill bg-card border-border/60 hover:border-primary/50 rounded-xl border p-8 shadow-sm transition-colors"
+                  >
+                    <div className="relative z-10 flex h-full flex-col items-start gap-2">
+                      <div className="mb-4">
+                        <ServiceIcon name={service.name} />
+                      </div>
+                      <h3 className="text-xl font-semibold">{display.name}</h3>
+                      {display.description && <p className="text-muted-foreground mb-4">{display.description}</p>}
+                      {/* Same master-data badge treatment as the admin tables */}
+                      <div className="mt-auto flex flex-wrap gap-1.5">
+                        {service.tiers.map((tier) => {
+                          const size = sizeOf(tier.sizeId)
+                          return (
+                            <span
+                              key={tier.id}
+                              className="bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 font-mono text-xs font-medium"
+                              style={
+                                size?.hexBgColorCode
+                                  ? { backgroundColor: size.hexBgColorCode, color: size.hexTextColorCode ?? undefined }
+                                  : undefined
+                              }
+                            >
+                              {formatBand(size)} ฿{Number(tier.priceThb)}
+                            </span>
+                          )
+                        })}
+                      </div>
+                      <Link href="/book" className="text-primary mt-3 text-sm font-medium hover:underline">
+                        {t("book")} →
+                      </Link>
                     </div>
-                    <h3 className="text-xl font-semibold">{service.name}</h3>
-                    {service.description && <p className="text-muted-foreground mb-4">{service.description}</p>}
-                    <div className="mt-auto flex flex-wrap gap-2">
-                      {service.tiers.map((tier) => (
-                        <span
-                          key={tier.id}
-                          className="bg-accent text-accent-foreground rounded-md px-3 py-1 font-mono text-sm"
-                        >
-                          {formatBand(sizeOf(tier.sizeId))} ฿{Number(tier.priceThb)}
-                        </span>
-                      ))}
-                    </div>
-                    <Link href="/book" className="text-primary mt-3 text-sm font-medium hover:underline">
-                      {t("book")} →
-                    </Link>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </section>

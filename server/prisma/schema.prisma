@@ -158,10 +158,13 @@ model Pet {
 // ── Services & pricing (admin-editable tiers; see DESIGN.md) ─────────
 
 model Service {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  active      Boolean @default(true)
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  // Thai display strings; clients fall back to the English fields when null
+  nameTh        String?
+  descriptionTh String?
+  active        Boolean @default(true)
 
   tiers    ServiceTier[]
   bookings Booking[]

@@ -1,6 +1,6 @@
 "use client"
 
-import { useFormatter, useTranslations } from "next-intl"
+import { useFormatter, useLocale, useTranslations } from "next-intl"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -18,7 +18,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { BookingRulesCard } from "@/components/booking-rules"
 import { Link } from "@/i18n/navigation"
-import type { MasterDataItem } from "@/lib/types/api"
+import { serviceDisplay, type MasterDataItem } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
 import { useBookingWizard } from "@/hooks/book/useBookingWizard"
 import { DATE_BOUNDS, STEP_ORDER } from "@/hooks/book/bookingState"
@@ -42,6 +42,7 @@ export default function BookPage() {
   const t = useTranslations("book")
   const tc = useTranslations("common")
   const tn = useTranslations("nav")
+  const locale = useLocale()
   const format = useFormatter()
 
   const { state, dispatch, catalog, pets, user, tier, sizeOf, staffNameOf, loadAvailability, confirmBooking } =
@@ -97,10 +98,10 @@ export default function BookPage() {
                   onClick={() => dispatch({ type: "selectService", service: candidate })}
                 >
                   <CardHeader>
-                    <CardTitle className="text-base">{candidate.name}</CardTitle>
+                    <CardTitle className="text-base">{serviceDisplay(candidate, locale).name}</CardTitle>
                   </CardHeader>
                   <CardContent className="text-muted-foreground text-sm">
-                    {candidate.description}
+                    {serviceDisplay(candidate, locale).description}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {candidate.tiers.map((tierOption) => {
                         const size = sizeOf(tierOption.sizeId)
@@ -212,7 +213,7 @@ export default function BookPage() {
           <div className="flex-1">
             {tier && (
               <p className="text-muted-foreground mb-3 text-sm">
-                {state.service.name} · {t("duration", { minutes: tier.durationMin })} · ฿{Number(tier.priceThb)}
+                {serviceDisplay(state.service, locale).name} · {t("duration", { minutes: tier.durationMin })} · ฿{Number(tier.priceThb)}
               </p>
             )}
             {state.loadingSlots && <Skeleton className="h-40" />}
@@ -249,7 +250,7 @@ export default function BookPage() {
           </CardHeader>
           <CardContent className="flex flex-col gap-2 text-sm">
             <p className="font-medium">
-              {state.service.name} — {state.pet.name}
+              {serviceDisplay(state.service, locale).name} — {state.pet.name}
             </p>
             <p>{format.dateTime(new Date(state.slot.start), { dateStyle: "full", timeStyle: "short" })}</p>
             <p className="text-muted-foreground">
