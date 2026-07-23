@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
 import { toast } from "sonner"
+import { RiCalendar2Line, RiListCheck2 } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -43,6 +44,7 @@ import { useAuth } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
 import type { Booking } from "@/lib/types/api"
 import { toDateParam } from "@/lib/utils/date"
+import { BookingsCalendar } from "./bookings-calendar"
 
 /** Mirror of the server transition map (bookings.service.ts) — UX only. */
 const TRANSITIONS: Record<string, readonly string[]> = {
@@ -65,6 +67,7 @@ export default function AdminBookingsPage() {
   const { can } = useAuth()
 
   const { data: bookings, isLoading, refetch } = useAxios<Booking[]>("/bookings", { throwOnError: true })
+  const [view, setView] = useState<"list" | "calendar">("list")
   const [filter, setFilter] = useState<Filter>("today")
   const [statusFilter, setStatusFilter] = useState("all")
   const [staffFilter, setStaffFilter] = useState("all")
@@ -80,20 +83,29 @@ export default function AdminBookingsPage() {
     [bookings],
   )
 
-  const visible = useMemo(() => {
-    const todayKey = toDateParam(new Date())
+  // Search/status/staff filters apply to BOTH views; the calendar does its own
+  // week windowing, so the today/upcoming/all date tab is list-view only.
+  const refined = useMemo(() => {
     const query = search.trim().toLowerCase()
-    const list = (bookings ?? []).filter((booking) => {
-      const key = toDateParam(new Date(booking.startsAt))
-      if (filter === "today" && key !== todayKey) return false
-      if (filter === "upcoming" && key < todayKey) return false
+    return (bookings ?? []).filter((booking) => {
       if (statusFilter !== "all" && booking.status.code !== statusFilter) return false
       if (staffFilter !== "all" && booking.staffName !== staffFilter) return false
       if (query && !`${booking.clientName} ${booking.petName}`.toLowerCase().includes(query)) return false
       return true
     })
-    return list.sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-  }, [bookings, filter, statusFilter, staffFilter, search])
+  }, [bookings, statusFilter, staffFilter, search])
+
+  const visible = useMemo(() => {
+    const todayKey = toDateParam(new Date())
+    return refined
+      .filter((booking) => {
+        const key = toDateParam(new Date(booking.startsAt))
+        if (filter === "today" && key !== todayKey) return false
+        if (filter === "upcoming" && key < todayKey) return false
+        return true
+      })
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+  }, [refined, filter])
 
   const confirmStatus = async () => {
     if (dialog.mode !== "status") return
@@ -135,13 +147,30 @@ export default function AdminBookingsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <Tabs value={filter} onValueChange={(value) => setFilter(value as Filter)}>
-          <TabsList>
-            <TabsTrigger value="today">{t("filterToday")}</TabsTrigger>
-            <TabsTrigger value="upcoming">{t("filterUpcoming")}</TabsTrigger>
-            <TabsTrigger value="all">{t("filterAll")}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex flex-wrap items-center gap-2">
+          {view === "list" && (
+            <Tabs value={filter} onValueChange={(value) => setFilter(value as Filter)}>
+              <TabsList>
+                <TabsTrigger value="today">{t("filterToday")}</TabsTrigger>
+                <TabsTrigger value="upcoming">{t("filterUpcoming")}</TabsTrigger>
+                <TabsTrigger value="all">{t("filterAll")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+          {/* View switch: table vs week calendar */}
+          <Tabs value={view} onValueChange={(value) => setView(value as typeof view)}>
+            <TabsList>
+              <TabsTrigger value="list">
+                <RiListCheck2 data-icon="inline-start" />
+                {t("viewList")}
+              </TabsTrigger>
+              <TabsTrigger value="calendar">
+                <RiCalendar2Line data-icon="inline-start" />
+                {t("viewCalendar")}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Refinement filters — options derive from loaded data */}
@@ -183,6 +212,16 @@ export default function AdminBookingsPage() {
 
       {isLoading ? (
         <Skeleton className="h-64" />
+      ) : view === "calendar" ? (
+        <BookingsCalendar
+          bookings={refined}
+          onSelect={(booking) => {
+            // Jump to the list focused on this booking (so its actions are reachable)
+            setView("list")
+            setFilter("all")
+            setSearch(booking.petName)
+          }}
+        />
       ) : visible.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t("empty")}</p>
       ) : (

@@ -174,7 +174,12 @@
       "confirmStatusTitle": "{action} this booking?",
       "confirmPaidTitle": "Mark this booking as paid?",
       "remark": "Remark (optional)",
-      "remarkPlaceholder": "Why is the status changing? Kept in the booking history."
+      "remarkPlaceholder": "Why is the status changing? Kept in the booking history.",
+      "viewList": "List",
+      "viewCalendar": "Calendar",
+      "prevWeek": "Previous week",
+      "nextWeek": "Next week",
+      "thisWeek": "This week"
     },
     "services": {
       "title": "Services & Prices",

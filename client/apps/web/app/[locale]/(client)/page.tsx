@@ -2,6 +2,7 @@ import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
 import { RiContrastDrop2Line } from "@remixicon/react"
 
+import { LandingMotion } from "@/components/landing-animations"
 import { Link } from "@/i18n/navigation"
 import { nestApi } from "@/lib/api/nest"
 import { ServiceIcon } from "@/lib/service-icons"
@@ -41,6 +42,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
   return (
     // overflow-x-clip here (not on the hero section) so the morphing blob can
     // breathe vertically without being cut, while never causing sideways scroll
+    <LandingMotion>
     <div className="bg-background text-foreground overflow-x-clip">
       {/* Signature: morphing lagoon blob + water-fill hover (off under reduced motion) */}
       <style>{`
@@ -74,27 +76,16 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-4 py-16 lg:flex-row lg:py-28">
-        <div className="z-10 flex flex-1 flex-col items-start gap-6">
-          <p className="animate-rise bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
+        <div data-anim="hero" className="z-10 flex flex-1 flex-col items-start gap-6">
+          <p className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
             <RiContrastDrop2Line className="size-4" aria-hidden />
             {t("eyebrow")}
           </p>
-          <h1
-            className="animate-rise max-w-2xl text-4xl leading-tight text-balance md:text-5xl"
-            style={{ "--rise-delay": "80ms" } as React.CSSProperties}
-          >
+          <h1 className="max-w-2xl text-4xl leading-tight text-balance md:text-5xl">
             {t("titleLead")} <span className="text-primary">{t("titleAccent")}</span>
           </h1>
-          <p
-            className="animate-rise text-muted-foreground max-w-xl"
-            style={{ "--rise-delay": "160ms" } as React.CSSProperties}
-          >
-            {t("subtitle")}
-          </p>
-          <div
-            className="animate-rise flex flex-wrap items-center gap-4 pt-2"
-            style={{ "--rise-delay": "240ms" } as React.CSSProperties}
-          >
+          <p className="text-muted-foreground max-w-xl">{t("subtitle")}</p>
+          <div className="flex flex-wrap items-center gap-4 pt-2">
             <Link
               href="/book"
               className="bg-primary text-primary-foreground shadow-primary/20 focus-visible:ring-ring rounded-full px-8 py-3 text-sm font-medium shadow-[0_4px_12px] transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
@@ -110,7 +101,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
           </div>
         </div>
 
-        <div className="relative w-full max-w-xl flex-1">
+        <div data-anim="hero-art" className="relative w-full max-w-xl flex-1">
           {/* Offset gradient blob behind gives the mask depth */}
           <div className="lagoon-blob absolute -inset-4 translate-x-4 translate-y-4 rotate-6" aria-hidden />
           {/* Signature: the illustration itself is clipped by the morphing blob */}
@@ -124,11 +115,11 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
       {services.length > 0 && (
         <section id="services" className="bg-muted/50 px-4 py-24">
           <div className="mx-auto w-full max-w-6xl">
-            <div className="mb-16 text-center">
+            <div data-anim="reveal" className="mb-16 text-center">
               <h2 className="mb-4 text-2xl font-semibold">{t("servicesTitle")}</h2>
               <p className="text-muted-foreground mx-auto max-w-2xl">{t("servicesSubtitle")}</p>
             </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div data-anim="pop" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {services.map((service) => {
                 const display = serviceDisplay(service, locale)
                 return (
@@ -175,11 +166,11 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
 
       {/* ── The journey (real sequence — connected steps) ────────────── */}
       <section className="mx-auto w-full max-w-6xl px-4 py-24">
-        <div className="mb-16 text-center">
+        <div data-anim="reveal" className="mb-16 text-center">
           <h2 className="mb-4 text-2xl font-semibold">{t("stepsTitle")}</h2>
           <p className="text-muted-foreground">{t("stepsSubtitle")}</p>
         </div>
-        <div className="relative grid grid-cols-1 gap-12 md:grid-cols-3">
+        <div data-anim="pop" className="relative grid grid-cols-1 gap-12 md:grid-cols-3">
           <div
             className="bg-border/60 absolute top-8 left-0 -z-10 hidden h-px w-full -translate-y-1/2 md:block"
             aria-hidden
@@ -234,5 +225,6 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
         </div>
       </footer>
     </div>
+    </LandingMotion>
   )
 }

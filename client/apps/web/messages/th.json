@@ -174,7 +174,12 @@
       "confirmStatusTitle": "ยืนยัน{action}การจองนี้?",
       "confirmPaidTitle": "ยืนยันว่าชำระเงินแล้ว?",
       "remark": "หมายเหตุ (ไม่บังคับ)",
-      "remarkPlaceholder": "เหตุผลในการเปลี่ยนสถานะ — บันทึกไว้ในประวัติการจอง"
+      "remarkPlaceholder": "เหตุผลในการเปลี่ยนสถานะ — บันทึกไว้ในประวัติการจอง",
+      "viewList": "รายการ",
+      "viewCalendar": "ปฏิทิน",
+      "prevWeek": "สัปดาห์ก่อน",
+      "nextWeek": "สัปดาห์ถัดไป",
+      "thisWeek": "สัปดาห์นี้"
     },
     "services": {
       "title": "บริการและราคา",
