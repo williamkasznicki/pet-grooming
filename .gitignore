@@ -14,3 +14,6 @@ packages/database/prisma/dev.db
 .claude/settings.local.json
 .claude/skills/
 server/src/generated/
+
+# Design reference images (local only)
+/image.png
