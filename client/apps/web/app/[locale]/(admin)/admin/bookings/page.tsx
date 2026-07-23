@@ -5,6 +5,14 @@ import { useFormatter, useTranslations } from "next-intl"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Table,
@@ -39,19 +47,35 @@ export default function AdminBookingsPage() {
 
   const { data: bookings, isLoading, refetch } = useAxios<Booking[]>("/bookings", { throwOnError: true })
   const [filter, setFilter] = useState<Filter>("today")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [staffFilter, setStaffFilter] = useState("all")
+  const [search, setSearch] = useState("")
   const [busyId, setBusyId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
+  // Filter options derived from the loaded data — always match what exists
+  const { statusOptions, staffOptions } = useMemo(
+    () => ({
+      statusOptions: [...new Set((bookings ?? []).map((booking) => booking.status.code))].sort(),
+      staffOptions: [...new Set((bookings ?? []).map((booking) => booking.staffName).filter(Boolean))].sort() as string[],
+    }),
+    [bookings],
+  )
+
   const visible = useMemo(() => {
     const todayKey = toDateParam(new Date())
+    const query = search.trim().toLowerCase()
     const list = (bookings ?? []).filter((booking) => {
       const key = toDateParam(new Date(booking.startsAt))
-      if (filter === "today") return key === todayKey
-      if (filter === "upcoming") return key >= todayKey
+      if (filter === "today" && key !== todayKey) return false
+      if (filter === "upcoming" && key < todayKey) return false
+      if (statusFilter !== "all" && booking.status.code !== statusFilter) return false
+      if (staffFilter !== "all" && booking.staffName !== staffFilter) return false
+      if (query && !`${booking.clientName} ${booking.petName}`.toLowerCase().includes(query)) return false
       return true
     })
     return list.sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-  }, [bookings, filter])
+  }, [bookings, filter, statusFilter, staffFilter, search])
 
   const transition = async (booking: Booking, toStatusCode: string) => {
     setBusyId(booking.id)
@@ -88,7 +112,7 @@ export default function AdminBookingsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
         <Tabs value={filter} onValueChange={(value) => setFilter(value as Filter)}>
           <TabsList>
@@ -97,6 +121,43 @@ export default function AdminBookingsPage() {
             <TabsTrigger value="all">{t("filterAll")}</TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* Refinement filters — options derive from loaded data */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("search")}
+          className="w-56"
+          aria-label={t("search")}
+        />
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter((value as string | null) ?? "all")}>
+          <SelectTrigger className="w-40" aria-label={t("filterStatus")}>
+            <SelectValue>{statusFilter === "all" ? t("allStatuses") : statusFilter}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            {statusOptions.map((code) => (
+              <SelectItem key={code} value={code}>
+                {code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={staffFilter} onValueChange={(value) => setStaffFilter((value as string | null) ?? "all")}>
+          <SelectTrigger className="w-40" aria-label={t("filterStaff")}>
+            <SelectValue>{staffFilter === "all" ? t("allStaff") : staffFilter}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allStaff")}</SelectItem>
+            {staffOptions.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {actionError && <p className="text-destructive text-sm">{actionError}</p>}

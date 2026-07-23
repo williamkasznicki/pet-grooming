@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
 
 import { Badge } from "@workspace/ui/components/badge"
@@ -17,6 +17,7 @@ import {
 } from "@workspace/ui/components/dialog"
 import { FieldError } from "@workspace/ui/components/field"
 import { Skeleton } from "@workspace/ui/components/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
 import { Link } from "@/i18n/navigation"
 import { api, apiErrorMessage } from "@/lib/api/client"
@@ -34,6 +35,19 @@ export default function BookingsPage() {
   // Page-critical query: failures render the segment's error.tsx boundary.
   const { data: bookings, isLoading, refetch } = useAxios<Booking[]>("/bookings", { throwOnError: true })
   const [dialog, setDialog] = useState<CancelDialog>({ mode: "closed" })
+  const [filter, setFilter] = useState<"upcoming" | "past" | "all">("upcoming")
+
+  const visible = useMemo(() => {
+    const nowIso = new Date().toISOString()
+    return (bookings ?? [])
+      .filter((booking) => {
+        if (filter === "upcoming") return booking.endsAt >= nowIso
+        if (filter === "past") return booking.endsAt < nowIso
+        return true
+      })
+      // Upcoming reads soonest-first; past reads most-recent-first
+      .sort((a, b) => (filter === "past" ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)))
+  }, [bookings, filter])
 
   const confirmCancel = async () => {
     if (dialog.mode !== "confirm") return
@@ -49,7 +63,16 @@ export default function BookingsPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
-      <h1 className="mb-6 text-3xl font-semibold">{t("title")}</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">{t("title")}</h1>
+        <Tabs value={filter} onValueChange={(value) => setFilter(value as typeof filter)}>
+          <TabsList>
+            <TabsTrigger value="upcoming">{t("filterUpcoming")}</TabsTrigger>
+            <TabsTrigger value="past">{t("filterPast")}</TabsTrigger>
+            <TabsTrigger value="all">{t("filterAll")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {isLoading || bookings === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -57,7 +80,7 @@ export default function BookingsPage() {
             <Skeleton key={index} className="h-44" />
           ))}
         </div>
-      ) : bookings.length === 0 ? (
+      ) : visible.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-start gap-3 pt-6">
             <p className="text-muted-foreground text-sm">{t("empty")}</p>
@@ -66,7 +89,7 @@ export default function BookingsPage() {
         </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {bookings.map((booking) => (
+          {visible.map((booking) => (
             <Card key={booking.id}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">

@@ -68,7 +68,10 @@
     "with": "with {staff}",
     "price": "{price} THB",
     "paymentUNPAID": "Pay at shop",
-    "paymentPAID": "Paid"
+    "paymentPAID": "Paid",
+    "filterUpcoming": "Upcoming",
+    "filterPast": "Past",
+    "filterAll": "All"
   },
   "book": {
     "title": "Book an appointment",
@@ -126,7 +129,12 @@
       "noShow": "No-show",
       "cancel": "Cancel",
       "markPaid": "Mark paid",
-      "empty": "No bookings match this filter."
+      "empty": "No bookings match this filter.",
+      "search": "Search client or pet…",
+      "filterStatus": "Status",
+      "allStatuses": "All statuses",
+      "filterStaff": "Groomer",
+      "allStaff": "All groomers"
     },
     "services": {
       "title": "Services & Prices",
@@ -190,7 +198,10 @@
       "manageRoles": "Manage roles",
       "removeRole": "Remove",
       "addRole": "Add role",
-      "selectRole": "Select a role"
+      "selectRole": "Select a role",
+      "search": "Search name or email…",
+      "filterRole": "Role",
+      "allRoles": "All roles"
     },
     "sizes": {
       "title": "Size Bands",

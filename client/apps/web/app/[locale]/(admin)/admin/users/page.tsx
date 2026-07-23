@@ -79,7 +79,18 @@ export default function AdminUsersPage() {
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
   const [values, setValues] = useState<UserValues>({ name: "", phone: "" })
   const [selectedRoleId, setSelectedRoleId] = useState<string>("")
+  const [search, setSearch] = useState("")
+  const [roleFilter, setRoleFilter] = useState("all")
   const canManage = can(Permissions.MANAGE_USERS)
+
+  const visibleUsers = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return (users ?? []).filter((user) => {
+      if (roleFilter !== "all" && !user.roles.includes(roleFilter)) return false
+      if (query && !`${user.name ?? ""} ${user.email}`.toLowerCase().includes(query)) return false
+      return true
+    })
+  }, [users, search, roleFilter])
 
   const isLoading = usersLoading || rolesLoading || users === undefined || roles === undefined
   const rolesByName = useMemo(() => new Map((roles ?? []).map((role) => [role.name, role])), [roles])
@@ -152,6 +163,30 @@ export default function AdminUsersPage() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
 
+      {/* Search + role filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("search")}
+          className="w-56"
+          aria-label={t("search")}
+        />
+        <Select value={roleFilter} onValueChange={(value) => setRoleFilter((value as string | null) ?? "all")}>
+          <SelectTrigger className="w-40" aria-label={t("filterRole")}>
+            <SelectValue>{roleFilter === "all" ? t("allRoles") : roleFilter}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allRoles")}</SelectItem>
+            {(roles ?? []).map((role) => (
+              <SelectItem key={role.id} value={role.name}>
+                {role.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoading ? (
         <Skeleton className="h-64" />
       ) : users.length === 0 ? (
@@ -169,7 +204,7 @@ export default function AdminUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
+            {visibleUsers.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name || t("unnamed")}</TableCell>
                 <TableCell>{user.email}</TableCell>

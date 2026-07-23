@@ -68,7 +68,10 @@
     "with": "กับ {staff}",
     "price": "{price} บาท",
     "paymentUNPAID": "ชำระที่ร้าน",
-    "paymentPAID": "ชำระแล้ว"
+    "paymentPAID": "ชำระแล้ว",
+    "filterUpcoming": "กำลังจะมาถึง",
+    "filterPast": "ที่ผ่านมา",
+    "filterAll": "ทั้งหมด"
   },
   "book": {
     "title": "จองคิว",
@@ -126,7 +129,12 @@
       "noShow": "ไม่มาตามนัด",
       "cancel": "ยกเลิก",
       "markPaid": "รับชำระแล้ว",
-      "empty": "ไม่มีการจองตามตัวกรองนี้"
+      "empty": "ไม่มีการจองตามตัวกรองนี้",
+      "search": "ค้นหาลูกค้าหรือสัตว์เลี้ยง…",
+      "filterStatus": "สถานะ",
+      "allStatuses": "ทุกสถานะ",
+      "filterStaff": "ช่าง",
+      "allStaff": "ช่างทุกคน"
     },
     "services": {
       "title": "บริการและราคา",
@@ -190,7 +198,10 @@
       "manageRoles": "จัดการบทบาท",
       "removeRole": "ลบ",
       "addRole": "เพิ่มบทบาท",
-      "selectRole": "เลือกบทบาท"
+      "selectRole": "เลือกบทบาท",
+      "search": "ค้นหาชื่อหรืออีเมล…",
+      "filterRole": "บทบาท",
+      "allRoles": "ทุกบทบาท"
     },
     "sizes": {
       "title": "ขนาดสัตว์เลี้ยง",
