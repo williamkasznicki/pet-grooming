@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
-import { RiCloseLine, RiMenuLine } from "@remixicon/react"
+import { RiCloseLine, RiLogoutBoxRLine, RiMenuLine } from "@remixicon/react"
 
 import { Button } from "@workspace/ui/components/button"
 
@@ -52,10 +52,24 @@ export function SiteHeader() {
 
   const authItems = user ? (
     <>
-      <span className="text-muted-foreground max-w-32 truncate px-1" title={user.name}>
-        {user.name}
+      {/* User identity as a chip, visually separated from the logout action */}
+      <span
+        className="bg-secondary text-secondary-foreground flex max-w-44 items-center gap-2 rounded-full py-1 pr-3 pl-1 text-sm font-medium"
+        title={user.name}
+      >
+        <span className="bg-primary text-primary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+          {user.name
+            .split(" ")
+            .map((part) => part[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase()}
+        </span>
+        <span className="truncate">{user.name}</span>
       </span>
+      <span className="bg-border mx-1 hidden h-5 w-px md:block" aria-hidden />
       <Button variant="outline" size="sm" onClick={onLogout}>
+        <RiLogoutBoxRLine data-icon="inline-start" />
         {t("logout")}
       </Button>
     </>

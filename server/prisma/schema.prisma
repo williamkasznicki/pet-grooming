@@ -144,6 +144,8 @@ model Pet {
   size      MdPetSize @relation(fields: [sizeId], references: [id])
   birthDate DateTime?
   notes     String?
+  /// Relative URL under /uploads (pets photo endpoint); null = no photo
+  photoUrl  String?
 
   bookings Booking[]
 

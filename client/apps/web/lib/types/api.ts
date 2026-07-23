@@ -22,6 +22,8 @@ export type Pet = {
   sizeId: number
   birthDate: string | null
   notes: string | null
+  /** Relative photo URL under the API's /uploads (render via assetUrl()). */
+  photoUrl: string | null
   createdAt: string
   updatedAt: string
 }

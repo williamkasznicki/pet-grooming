@@ -16,17 +16,29 @@ import {
 async function forward(request: NextRequest, ctx: RouteContext<"/api/proxy/[...path]">) {
   const { path } = await ctx.params
   const url = `/${path.join("/")}${request.nextUrl.search}`
-  const body = request.method === "GET" || request.method === "HEAD" ? undefined : await request.text()
+  const contentType = request.headers.get("content-type") ?? "application/json"
+  // Multipart (file uploads) must pass through as raw bytes — text-decoding
+  // corrupts the binary parts
+  const isBinary = contentType.startsWith("multipart/") || contentType.startsWith("application/octet-stream")
+  const body =
+    request.method === "GET" || request.method === "HEAD"
+      ? undefined
+      : isBinary
+        ? Buffer.from(await request.arrayBuffer())
+        : await request.text()
 
   const send = (token?: string) =>
     nestApi.request<unknown>({
       url,
       method: request.method,
       data: body === "" ? undefined : body,
+      // Never JSON-transform binary payloads; axios must send the Buffer as-is
+      ...(isBinary ? { transformRequest: [(data: unknown) => data] } : {}),
       headers: {
-        "Content-Type": request.headers.get("content-type") ?? "application/json",
+        "Content-Type": contentType,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      maxBodyLength: 10 * 1024 * 1024,
     })
 
   let response = await send(await getAccessToken())

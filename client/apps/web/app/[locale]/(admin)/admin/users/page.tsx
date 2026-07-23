@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { RiAddLine, RiDeleteBinLine, RiPencilLine, RiShieldUserLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -238,6 +239,7 @@ export default function AdminUsersPage() {
                   {canManage && (
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => openEdit(user)}>
+                        <RiPencilLine data-icon="inline-start" />
                         {t("edit")}
                       </Button>
                       <Button
@@ -248,9 +250,11 @@ export default function AdminUsersPage() {
                           setDialog({ mode: "roles", user })
                         }}
                       >
+                        <RiShieldUserLine data-icon="inline-start" />
                         {t("manageRoles")}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDialog({ mode: "delete", user })}>
+                      <Button variant="destructive" size="sm" onClick={() => setDialog({ mode: "delete", user })}>
+                        <RiDeleteBinLine data-icon="inline-start" />
                         {tc("delete")}
                       </Button>
                     </div>
@@ -298,46 +302,69 @@ export default function AdminUsersPage() {
           </DialogHeader>
           {dialog.mode === "roles" && (
             <div className="flex flex-col gap-4">
-              <div className="flex flex-wrap gap-2">
+              {/* Assigned roles as list rows — name + description left, remove right */}
+              <div className="border-border divide-border divide-y rounded-lg border">
+                {dialog.user.roles.length === 0 && (
+                  <p className="text-muted-foreground px-3 py-4 text-sm">{t("noRoles")}</p>
+                )}
                 {dialog.user.roles.map((roleName) => {
                   const role = rolesByName.get(roleName)
                   return (
-                    <Badge key={roleName} variant="outline" className="gap-2">
-                      {roleName}
+                    <div key={roleName} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-2 text-sm font-medium">
+                          <RiShieldUserLine className="text-primary size-4 shrink-0" aria-hidden />
+                          {roleName}
+                        </p>
+                        {role?.desc && <p className="text-muted-foreground truncate text-xs">{role.desc}</p>}
+                      </div>
                       {role && (
                         <Button
-                          variant="ghost"
-                          size="xs"
+                          variant="destructive"
+                          size="icon-xs"
+                          aria-label={`${t("removeRole")} ${roleName}`}
                           disabled={dialog.busyRoleId === role.id}
                           onClick={() => void removeRole(role)}
                         >
-                          {t("removeRole")}
+                          <RiDeleteBinLine />
                         </Button>
                       )}
-                    </Badge>
+                    </div>
                   )
                 })}
               </div>
-              <div className="flex flex-wrap items-end gap-2">
-                <Field>
-                  <FieldLabel>{t("addRole")}</FieldLabel>
-                  <Select value={selectedRoleId} onValueChange={(value) => setSelectedRoleId(value ?? "")}>
-                    <SelectTrigger className="w-60">
-                      <SelectValue placeholder={t("selectRole")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {remainingRoles.map((role) => (
-                        <SelectItem key={role.id} value={String(role.id)}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Button disabled={selectedRoleId === "" || dialog.busyRoleId !== undefined} onClick={() => void addRole()}>
-                  {dialog.busyRoleId !== undefined ? tc("loading") : t("addRole")}
-                </Button>
-              </div>
+
+              {/* Add row */}
+              {remainingRoles.length > 0 && (
+                <div className="flex items-end gap-2">
+                  <Field className="flex-1">
+                    <FieldLabel>{t("addRole")}</FieldLabel>
+                    <Select value={selectedRoleId} onValueChange={(value) => setSelectedRoleId(value ?? "")}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={t("selectRole")}>
+                          {selectedRoleId !== ""
+                            ? (roles ?? []).find((role) => String(role.id) === selectedRoleId)?.name
+                            : null}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {remainingRoles.map((role) => (
+                          <SelectItem key={role.id} value={String(role.id)}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Button
+                    disabled={selectedRoleId === "" || dialog.busyRoleId !== undefined}
+                    onClick={() => void addRole()}
+                  >
+                    <RiAddLine data-icon="inline-start" />
+                    {dialog.busyRoleId !== undefined ? tc("loading") : t("addRole")}
+                  </Button>
+                </div>
+              )}
               {dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
             </div>
           )}

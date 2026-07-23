@@ -33,6 +33,8 @@ import {
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
+
 import { SERVICE_ICONS, SERVICE_ICON_KEYS, ServiceIcon, type ServiceIconKey } from "@/lib/service-icons"
 import {
   emptyServiceValues,
@@ -190,7 +192,7 @@ export default function AdminServicesPage() {
       ) : (
         <div className="grid gap-3 xl:grid-cols-2">
           {services.map((service) => (
-            <Card key={service.id}>
+            <Card key={service.id} size="sm">
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -228,23 +230,25 @@ export default function AdminServicesPage() {
                 {canManage && (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openForm(service)}>
+                      <RiPencilLine data-icon="inline-start" />
                       {t("edit")}
                     </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setDialog({ mode: "delete", service })}>
+                    <Button variant="destructive" size="sm" onClick={() => setDialog({ mode: "delete", service })}>
+                      <RiDeleteBinLine data-icon="inline-start" />
                       {tc("delete")}
                     </Button>
                   </div>
                 )}
 
-                <div className="border-t pt-4">
-                  <h2 className="mb-3 text-sm font-medium">{t("tiers")}</h2>
-                  <div className="grid gap-3">
+                <div className="border-t pt-3">
+                  <h2 className="mb-2 text-sm font-medium">{t("tiers")}</h2>
+                  <div className="grid gap-2">
                     {sizes.map((size) => {
                       const key = tierKey(service, size)
                       const draft = tierDraftFor(service, size)
                       const busy = tierBusyKey === key
                       return (
-                        <div key={size.id} className="grid gap-2 border p-3 md:grid-cols-[8rem_1fr_1fr_auto] md:items-end">
+                        <div key={size.id} className="grid gap-2 rounded-lg border p-2 md:grid-cols-[7rem_1fr_1fr_auto] md:items-end">
                           <div className="flex items-center gap-2 md:pb-2">
                             <Badge
                               style={

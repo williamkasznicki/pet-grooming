@@ -16,7 +16,10 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { RiCheckboxCircleFill } from "@remixicon/react"
+
 import { BookingRulesCard } from "@/components/booking-rules"
+import { PetAvatar } from "@/components/pet-avatar"
 import { Link } from "@/i18n/navigation"
 import { serviceDisplay, type MasterDataItem } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
@@ -137,32 +140,42 @@ export default function BookPage() {
               </CardContent>
             </Card>
           )}
-          {user &&
-            (pets ?? []).map((candidate) => {
-              const size = sizeOf(candidate.sizeId)
-              return (
-                <Card
-                  key={candidate.id}
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    state.pet?.id === candidate.id && "border-primary",
-                  )}
-                  onClick={() => dispatch({ type: "selectPet", pet: candidate })}
-                >
-                  <CardContent className="flex items-center justify-between gap-3 pt-6">
-                    <div>
-                      <p className="font-medium">{candidate.name}</p>
-                      <p className="text-muted-foreground text-sm">
+          {user && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {(pets ?? []).map((candidate) => {
+                const size = sizeOf(candidate.sizeId)
+                const selected = state.pet?.id === candidate.id
+                return (
+                  <button
+                    key={candidate.id}
+                    type="button"
+                    aria-pressed={selected}
+                    className={cn(
+                      "bg-card hover:border-primary/60 focus-visible:ring-ring flex items-center gap-3 rounded-xl border p-3 text-left shadow-sm transition-all focus-visible:ring-2 focus-visible:outline-none",
+                      selected && "border-primary ring-primary/25 shadow-primary/10 shadow-md ring-2",
+                    )}
+                    onClick={() => dispatch({ type: "selectPet", pet: candidate })}
+                  >
+                    <PetAvatar pet={candidate} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold">{candidate.name}</p>
+                      <p className="text-muted-foreground truncate text-sm">
                         {candidate.breed}
                         {candidate.breed && candidate.weightKg && " · "}
                         {candidate.weightKg && `${Number(candidate.weightKg)} kg`}
                       </p>
+                      {size && (
+                        <span className="mt-1 inline-block">
+                          <SizeBadge size={size}>{formatBand(size)}</SizeBadge>
+                        </span>
+                      )}
                     </div>
-                    {size && <SizeBadge size={size}>{formatBand(size)}</SizeBadge>}
-                  </CardContent>
-                </Card>
-              )
-            })}
+                    {selected && <RiCheckboxCircleFill className="text-primary size-5 shrink-0" aria-hidden />}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <Button
             variant="ghost"
             size="sm"

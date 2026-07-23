@@ -1,3 +1,5 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthUser } from '../../common/types/auth.types.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
@@ -60,6 +62,28 @@ export class PetsService {
         sizeId,
         birthDate: dto.birthDate,
         notes: dto.notes,
+      });
+      return PetResponseDto.from(pet);
+    } catch (error) {
+      translatePrismaError(error);
+    }
+  }
+
+  /** Store the uploaded photo on disk (served under /uploads) and save its URL. */
+  async setPhoto(id: string, photo: Express.Multer.File, user: AuthUser): Promise<PetResponseDto> {
+    await this.ensureExists(id, user);
+
+    const extension = photo.mimetype === 'image/png' ? 'png' : photo.mimetype === 'image/webp' ? 'webp' : 'jpg';
+    const directory = join(process.cwd(), 'uploads', 'pets');
+    await mkdir(directory, { recursive: true });
+    // Deterministic name per pet: re-upload overwrites, no orphan files.
+    // Timestamp query-busts browser caches after replacement.
+    const fileName = `${id}.${extension}`;
+    await writeFile(join(directory, fileName), photo.buffer);
+
+    try {
+      const pet = await this.petsRepository.update(id, {
+        photoUrl: `/uploads/pets/${fileName}?v=${Date.now()}`,
       });
       return PetResponseDto.from(pet);
     } catch (error) {

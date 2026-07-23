@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
+import { RiCameraLine, RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -22,6 +23,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { PetAvatar } from "@/components/pet-avatar"
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { usePermissions } from "@/lib/auth/auth-context"
@@ -52,6 +54,33 @@ export default function PetsPage() {
   const sizesById = useMemo(() => new Map(sizes.map((size) => [size.id, size])), [sizes])
 
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
+  const [photoBusyId, setPhotoBusyId] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const photoTargetRef = useRef<Pet | null>(null)
+
+  const pickPhoto = (pet: Pet) => {
+    photoTargetRef.current = pet
+    fileInputRef.current?.click()
+  }
+
+  const uploadPhoto = async (file: File) => {
+    const pet = photoTargetRef.current
+    if (!pet) return
+    setPhotoBusyId(pet.id)
+    setPhotoError(null)
+    try {
+      const body = new FormData()
+      body.append("photo", file)
+      await api.post(`/pets/${pet.id}/photo`, body)
+      reload()
+    } catch (err) {
+      setPhotoError(apiErrorMessage(err, tc("error")))
+    } finally {
+      setPhotoBusyId(null)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
 
   const form = useForm<PetValues>({ resolver: zodResolver(petSchema), defaultValues: emptyPetValues })
   const { errors, isSubmitting } = form.formState
@@ -102,6 +131,19 @@ export default function PetsPage() {
         <Button onClick={() => openForm()}>{t("add")}</Button>
       </div>
 
+      {/* Shared hidden input for photo uploads (jpeg/png/webp ≤ 2MB, server-validated) */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          if (file) void uploadPhoto(file)
+        }}
+      />
+      {photoError && <p className="text-destructive mb-3 text-sm">{photoError}</p>}
+
       {isLoading || pets === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -123,7 +165,23 @@ export default function PetsPage() {
               <Card key={pet.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="text-base">{pet.name}</CardTitle>
+                    <div className="flex min-w-0 items-center gap-3">
+                      {/* Click the avatar to change the photo */}
+                      <button
+                        type="button"
+                        className="group focus-visible:ring-ring relative shrink-0 rounded-full focus-visible:ring-2 focus-visible:outline-none"
+                        aria-label={t("changePhoto")}
+                        title={t("changePhoto")}
+                        disabled={photoBusyId === pet.id}
+                        onClick={() => pickPhoto(pet)}
+                      >
+                        <PetAvatar pet={pet} className={photoBusyId === pet.id ? "opacity-50" : undefined} />
+                        <span className="bg-primary text-primary-foreground absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full shadow-sm transition-transform group-hover:scale-110">
+                          <RiCameraLine className="size-3" aria-hidden />
+                        </span>
+                      </button>
+                      <CardTitle className="truncate text-base">{pet.name}</CardTitle>
+                    </div>
                     {size && (
                       <Badge
                         style={
@@ -137,7 +195,7 @@ export default function PetsPage() {
                     )}
                   </div>
                 </CardHeader>
-                <CardContent className="flex min-h-28 flex-col gap-3">
+                <CardContent className="flex min-h-24 flex-col gap-3">
                   {(pet.breed || pet.weightKg) && (
                     <p className="text-sm">
                       {pet.breed}
@@ -148,10 +206,12 @@ export default function PetsPage() {
                   {pet.notes && <p className="text-muted-foreground line-clamp-4 text-sm">{pet.notes}</p>}
                   <div className="mt-auto flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openForm(pet)}>
+                      <RiPencilLine data-icon="inline-start" />
                       {t("edit")}
                     </Button>
                     {can(Permissions.DELETE_PET) && (
-                      <Button variant="ghost" size="sm" onClick={() => setDialog({ mode: "delete", pet })}>
+                      <Button variant="destructive" size="sm" onClick={() => setDialog({ mode: "delete", pet })}>
+                        <RiDeleteBinLine data-icon="inline-start" />
                         {tc("delete")}
                       </Button>
                     )}

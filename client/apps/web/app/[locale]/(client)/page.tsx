@@ -39,7 +39,9 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
   const sizeOf = (sizeId: number) => sizes.find((size) => size.id === sizeId)
 
   return (
-    <div className="bg-background text-foreground">
+    // overflow-x-clip here (not on the hero section) so the morphing blob can
+    // breathe vertically without being cut, while never causing sideways scroll
+    <div className="bg-background text-foreground overflow-x-clip">
       {/* Signature: morphing lagoon blob + water-fill hover (off under reduced motion) */}
       <style>{`
         .lagoon-blob {
@@ -71,7 +73,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
       `}</style>
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 overflow-hidden px-4 py-16 lg:flex-row lg:py-28">
+      <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 px-4 py-16 lg:flex-row lg:py-28">
         <div className="z-10 flex flex-1 flex-col items-start gap-6">
           <p className="animate-rise bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium">
             <RiContrastDrop2Line className="size-4" aria-hidden />

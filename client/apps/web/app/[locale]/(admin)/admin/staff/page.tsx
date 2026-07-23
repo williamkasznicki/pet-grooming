@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { RiDeleteBinLine, RiPencilLine, RiTimeLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -335,7 +336,7 @@ export default function AdminStaffPage() {
           {staff.map((item) => {
             const timeOff = timeOffList(item)
             return (
-              <Card key={item.id}>
+              <Card key={item.id} size="sm">
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -365,7 +366,7 @@ export default function AdminStaffPage() {
                     ) : (
                       <div className="flex flex-col gap-2">
                         {timeOff.map((entry) => (
-                          <div key={entry.id} className="flex items-center justify-between gap-3 border p-2 text-sm">
+                          <div key={entry.id} className="flex items-center justify-between gap-3 rounded-lg border p-2 text-sm">
                             <span>
                               {entry.isPermanent
                                 ? t("permanent")
@@ -374,11 +375,12 @@ export default function AdminStaffPage() {
                             </span>
                             {canManageStaff && (
                               <Button
-                                variant="ghost"
-                                size="xs"
+                                variant="destructive"
+                                size="icon-xs"
+                                aria-label={tc("delete")}
                                 onClick={() => setDialog({ mode: "deleteTimeOff", staff: item, timeOff: entry })}
                               >
-                                {tc("delete")}
+                                <RiDeleteBinLine />
                               </Button>
                             )}
                           </div>
@@ -389,9 +391,11 @@ export default function AdminStaffPage() {
                   {canManageStaff && (
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" size="sm" onClick={() => openEdit(item)}>
+                        <RiPencilLine data-icon="inline-start" />
                         {t("edit")}
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => openHours(item)}>
+                        <RiTimeLine data-icon="inline-start" />
                         {t("editHours")}
                       </Button>
                     </div>

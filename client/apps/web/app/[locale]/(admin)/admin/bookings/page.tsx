@@ -223,6 +223,11 @@ export default function AdminBookingsPage() {
                     )}
                   </TableCell>
                   <TableCell className="flex gap-1">
+                    {can(Permissions.UPDATE_BOOKING) && targets.length === 0 && (
+                      // Terminal states (COMPLETED/CANCELLED/NO_SHOW) have no
+                      // transitions — show that explicitly instead of a blank
+                      <span className="text-muted-foreground">—</span>
+                    )}
                     {can(Permissions.UPDATE_BOOKING) &&
                       targets.map((target) => (
                         <Button

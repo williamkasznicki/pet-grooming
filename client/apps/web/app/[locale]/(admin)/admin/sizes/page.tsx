@@ -15,7 +15,16 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
+import { RiAddLine, RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
+
 import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import {
   Table,
@@ -92,12 +101,21 @@ export default function AdminSizesPage() {
   })
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
   const [values, setValues] = useState<SizeValues>(emptyValues)
+  const [search, setSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all")
   const canManage = can(Permissions.MANAGE_SERVICES)
 
-  const sorted = useMemo(
-    () => [...(sizes ?? [])].sort((a, b) => Number(a.minWeightKg ?? 0) - Number(b.minWeightKg ?? 0)),
-    [sizes],
-  )
+  const sorted = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return [...(sizes ?? [])]
+      .filter((size) => {
+        if (statusFilter === "active" && !size.isActive) return false
+        if (statusFilter === "inactive" && size.isActive) return false
+        if (query && !`${size.code} ${size.desc ?? ""}`.toLowerCase().includes(query)) return false
+        return true
+      })
+      .sort((a, b) => Number(a.minWeightKg ?? 0) - Number(b.minWeightKg ?? 0))
+  }, [sizes, search, statusFilter])
 
   const openForm = (size?: MasterDataItem) => {
     setValues(defaults(size))
@@ -173,7 +191,38 @@ export default function AdminSizesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        {canManage && <Button onClick={() => openForm()}>{t("add")}</Button>}
+        {canManage && (
+          <Button onClick={() => openForm()}>
+            <RiAddLine data-icon="inline-start" />
+            {t("add")}
+          </Button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("search")}
+          className="w-56"
+          aria-label={t("search")}
+        />
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => setStatusFilter(((value as string | null) ?? "all") as typeof statusFilter)}
+        >
+          <SelectTrigger className="w-36" aria-label={t("status")}>
+            <SelectValue>
+              {statusFilter === "all" ? t("allStatuses") : statusFilter === "active" ? t("active") : t("inactive")}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            <SelectItem value="active">{t("active")}</SelectItem>
+            <SelectItem value="inactive">{t("inactive")}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading || sizes === undefined ? (
@@ -216,9 +265,11 @@ export default function AdminSizesPage() {
                   {canManage && (
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => openForm(size)}>
+                        <RiPencilLine data-icon="inline-start" />
                         {t("edit")}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setDialog({ mode: "delete", size })}>
+                      <Button variant="destructive" size="sm" onClick={() => setDialog({ mode: "delete", size })}>
+                        <RiDeleteBinLine data-icon="inline-start" />
                         {tc("delete")}
                       </Button>
                     </div>

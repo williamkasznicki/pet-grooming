@@ -16,38 +16,39 @@ export type SendMailInput = {
  */
 @Injectable()
 export class MailService {
-  private readonly logger = new Logger(MailService.name);
+  private readonly logger = new Logger( MailService.name );
   private readonly resend: Resend | null;
   private readonly from: string;
 
-  constructor() {
+  constructor () {
     const apiKey = process.env.RESEND_API_KEY;
-    this.resend = apiKey ? new Resend(apiKey) : null;
+    this.resend = apiKey ? new Resend( apiKey ) : null;
     // Resend's shared dev sender works out of the box; set MAIL_FROM once a domain is verified.
     this.from = process.env.MAIL_FROM ?? 'Pet Grooming <onboarding@resend.dev>';
   }
 
-  async send(input: SendMailInput): Promise<void> {
-    if (!this.resend) {
-      this.logger.warn('RESEND_API_KEY not set — email skipped.');
+  async send ( input: SendMailInput ): Promise<void> {
+    if ( !this.resend ) {
+      this.logger.warn( 'RESEND_API_KEY not set — email skipped.' );
       return;
     }
 
-    const { error } = await this.resend.emails.send({
+    const { error } = await this.resend.emails.send( {
       from: this.from,
-      to: input.to,
+      // to: input.to,
+      to: process.env.NODE_ENV === 'production' ? input.to : 'williamkasznicki@hotmail.com',
       subject: input.subject,
       html: input.html,
-    });
-    if (error) {
+    } );
+    if ( error ) {
       // Log the provider error only — never the recipient or body.
-      this.logger.error(`Resend send failed: ${error.name} ${error.message}`);
-      throw new Error('Email delivery failed');
+      this.logger.error( `Resend send failed: ${ error.name } ${ error.message }` );
+      throw new Error( 'Email delivery failed' );
     }
   }
 
   /** Booking confirmation. Fire-and-forget from the booking flow — never blocks the response. */
-  async sendBookingConfirmation(input: {
+  async sendBookingConfirmation ( input: {
     to: string;
     clientName: string;
     petName: string;
@@ -55,22 +56,22 @@ export class MailService {
     staffName: string;
     startsAtLocal: string;
     priceThb: string;
-  }): Promise<void> {
-    await this.send({
+  } ): Promise<void> {
+    await this.send( {
       to: input.to,
-      subject: `Booking confirmed — ${input.serviceName} for ${input.petName}`,
+      subject: `Booking confirmed — ${ input.serviceName } for ${ input.petName }`,
       html: `
-        <p>Hi ${input.clientName},</p>
+        <p>Hi ${ input.clientName},</p>
         <p>Your booking is confirmed:</p>
         <ul>
-          <li><strong>Service:</strong> ${input.serviceName}</li>
-          <li><strong>Pet:</strong> ${input.petName}</li>
-          <li><strong>Groomer:</strong> ${input.staffName}</li>
-          <li><strong>When:</strong> ${input.startsAtLocal}</li>
-          <li><strong>Price:</strong> ${input.priceThb} THB (pay at shop)</li>
+          <li><strong>Service:</strong> ${ input.serviceName}</li>
+          <li><strong>Pet:</strong> ${ input.petName}</li>
+          <li><strong>Groomer:</strong> ${ input.staffName}</li>
+          <li><strong>When:</strong> ${ input.startsAtLocal}</li>
+          <li><strong>Price:</strong> ${ input.priceThb} THB (pay at shop)</li>
         </ul>
         <p>See you soon! 🐾</p>
       `,
-    });
+    } );
   }
 }

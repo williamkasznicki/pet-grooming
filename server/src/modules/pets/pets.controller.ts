@@ -1,5 +1,19 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseFilePipe,
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  Post,
+  Put,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '../../common/decorators/auth.decorators.js';
 import type { AuthUser } from '../../common/types/auth.types.js';
 import { CreatePetDto } from './dto/create-pet.dto.js';
@@ -39,6 +53,34 @@ export class PetsController {
   @ApiOkResponse({ type: PetResponseDto })
   update(@Param('id') id: string, @Body() dto: UpdatePetDto, @CurrentUser() user: AuthUser): Promise<PetResponseDto> {
     return this.petsService.update(id, dto, user);
+  }
+
+  @Post(':id/photo')
+  @RequirePermissions('pet:update')
+  @UseInterceptors(FileInterceptor('photo'))
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: { photo: { type: 'string', format: 'binary' } },
+      required: ['photo'],
+    },
+  })
+  @ApiOkResponse({ type: PetResponseDto, description: 'Pet with the new photoUrl' })
+  uploadPhoto(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 2 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    photo: Express.Multer.File,
+    @CurrentUser() user: AuthUser,
+  ): Promise<PetResponseDto> {
+    return this.petsService.setPhoto(id, photo, user);
   }
 
   @Delete(':id')

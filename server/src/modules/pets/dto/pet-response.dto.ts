@@ -26,6 +26,9 @@ export class PetResponseDto {
   @ApiProperty({ type: String, nullable: true })
   notes!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: 'Relative photo URL under /uploads' })
+  photoUrl!: string | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 
@@ -43,6 +46,7 @@ export class PetResponseDto {
       sizeId: pet.sizeId,
       birthDate: pet.birthDate?.toISOString() ?? null,
       notes: pet.notes,
+      photoUrl: pet.photoUrl,
       createdAt: pet.createdAt.toISOString(),
       updatedAt: pet.updatedAt.toISOString(),
     };

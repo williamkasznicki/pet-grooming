@@ -16,6 +16,14 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog"
 import { FieldError } from "@workspace/ui/components/field"
+import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
@@ -37,18 +45,28 @@ export default function BookingsPage() {
   const { data: bookings, isLoading, refetch } = useAxios<Booking[]>("/bookings", { throwOnError: true })
   const [dialog, setDialog] = useState<CancelDialog>({ mode: "closed" })
   const [filter, setFilter] = useState<"upcoming" | "past" | "all">("upcoming")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [search, setSearch] = useState("")
+
+  const statusOptions = useMemo(
+    () => [...new Set((bookings ?? []).map((booking) => booking.status.code))].sort(),
+    [bookings],
+  )
 
   const visible = useMemo(() => {
     const nowIso = new Date().toISOString()
+    const query = search.trim().toLowerCase()
     return (bookings ?? [])
       .filter((booking) => {
-        if (filter === "upcoming") return booking.endsAt >= nowIso
-        if (filter === "past") return booking.endsAt < nowIso
+        if (filter === "upcoming" && booking.endsAt < nowIso) return false
+        if (filter === "past" && booking.endsAt >= nowIso) return false
+        if (statusFilter !== "all" && booking.status.code !== statusFilter) return false
+        if (query && !`${booking.serviceName} ${booking.petName}`.toLowerCase().includes(query)) return false
         return true
       })
       // Upcoming reads soonest-first; past reads most-recent-first
       .sort((a, b) => (filter === "past" ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)))
-  }, [bookings, filter])
+  }, [bookings, filter, statusFilter, search])
 
   const confirmCancel = async () => {
     if (dialog.mode !== "confirm") return
@@ -73,6 +91,30 @@ export default function BookingsPage() {
             <TabsTrigger value="all">{t("filterAll")}</TabsTrigger>
           </TabsList>
         </Tabs>
+      </div>
+
+      {/* Refinement filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("search")}
+          className="w-56"
+          aria-label={t("search")}
+        />
+        <Select value={statusFilter} onValueChange={(value) => setStatusFilter((value as string | null) ?? "all")}>
+          <SelectTrigger className="w-40" aria-label={t("filterStatus")}>
+            <SelectValue>{statusFilter === "all" ? t("allStatuses") : statusFilter}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t("allStatuses")}</SelectItem>
+            {statusOptions.map((code) => (
+              <SelectItem key={code} value={code}>
+                {code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {isLoading || bookings === undefined ? (

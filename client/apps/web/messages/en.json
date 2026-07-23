@@ -60,7 +60,8 @@
     "birthDate": "Birth date (optional)",
     "notes": "Notes (optional)",
     "saved": "Pet saved",
-    "deleted": "Pet removed"
+    "deleted": "Pet removed",
+    "changePhoto": "Change photo"
   },
   "bookings": {
     "title": "My Bookings",
@@ -76,7 +77,10 @@
     "paymentPAID": "Paid",
     "filterUpcoming": "Upcoming",
     "filterPast": "Past",
-    "filterAll": "All"
+    "filterAll": "All",
+    "search": "Search service or pet…",
+    "filterStatus": "Status",
+    "allStatuses": "All statuses"
   },
   "book": {
     "title": "Book an appointment",
@@ -228,6 +232,7 @@
       "deleteConfirm": "Delete this user?",
       "manageRoles": "Manage roles",
       "removeRole": "Remove",
+      "noRoles": "No roles assigned yet.",
       "addRole": "Add role",
       "selectRole": "Select a role",
       "search": "Search name or email…",
@@ -265,7 +270,9 @@
       "hexInvalid": "Use #RRGGBB format",
       "maxAfterMin": "Max weight must be greater than min weight",
       "deleteConfirm": "Delete this size band?",
-      "deleteInUseHint": "Deactivate this band instead if it is already used."
+      "deleteInUseHint": "Deactivate this band instead if it is already used.",
+      "search": "Search code or description…",
+      "allStatuses": "All statuses"
     },
     "settings": {
       "title": "Shop Settings",
