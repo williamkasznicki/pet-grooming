@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
-import { toast } from "sonner"
 import { RiCameraLine, RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
 import { Button } from "@workspace/ui/components/button"
@@ -26,7 +25,8 @@ import { Textarea } from "@workspace/ui/components/textarea"
 import { MasterDataBadge } from "@/components/master-data-badge"
 import { PetAvatar } from "@/components/pet-avatar"
 import { useAxios } from "@/hooks/useAxios"
-import { api, apiErrorMessage } from "@/lib/api/client"
+import { useMutation } from "@/hooks/useMutation"
+import { api } from "@/lib/api/client"
 import { usePermissions } from "@/lib/auth/auth-context"
 import { emptyPetValues, petDefaults, petSchema, type PetValues } from "@/lib/factories/petFactory"
 import { Permissions } from "@/lib/permissions"
@@ -34,11 +34,8 @@ import type { MasterDataItem, Pet } from "@/lib/types/api"
 import { optionalString } from "@/lib/utils/string"
 import { formatBand } from "@/lib/utils/weight"
 
-/** One state machine instead of open-flags + editing/deleting/error trios. */
-type DialogState =
-  | { mode: "closed" }
-  | { mode: "form"; pet?: Pet; busyError?: string }
-  | { mode: "delete"; pet: Pet; busy?: boolean; busyError?: string }
+/** Which dialog is open — busy/error state lives in useMutation. */
+type DialogState = { mode: "closed" } | { mode: "form"; pet?: Pet } | { mode: "delete"; pet: Pet }
 
 export default function PetsPage() {
   const t = useTranslations("pets")
@@ -55,10 +52,16 @@ export default function PetsPage() {
   const sizesById = useMemo(() => new Map(sizes.map((size) => [size.id, size])), [sizes])
 
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
+  const mutation = useMutation()
+  const closeDialog = () => {
+    mutation.reset()
+    setDialog({ mode: "closed" })
+  }
+
   const [photoBusyId, setPhotoBusyId] = useState<string | null>(null)
-  const [photoError, setPhotoError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const photoTargetRef = useRef<Pet | null>(null)
+  const photoUpload = useMutation()
 
   const pickPhoto = (pet: Pet) => {
     photoTargetRef.current = pet
@@ -69,19 +72,14 @@ export default function PetsPage() {
     const pet = photoTargetRef.current
     if (!pet) return
     setPhotoBusyId(pet.id)
-    setPhotoError(null)
-    try {
-      const body = new FormData()
-      body.append("photo", file)
-      await api.post(`/pets/${pet.id}/photo`, body)
-      toast.success(t("saved"))
-      reload()
-    } catch (err) {
-      setPhotoError(apiErrorMessage(err, tc("error")))
-    } finally {
-      setPhotoBusyId(null)
-      if (fileInputRef.current) fileInputRef.current.value = ""
-    }
+    const body = new FormData()
+    body.append("photo", file)
+    await photoUpload.run(() => api.post(`/pets/${pet.id}/photo`, body), {
+      successMessage: t("saved"),
+      onSuccess: reload,
+    })
+    setPhotoBusyId(null)
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const form = useForm<PetValues>({ resolver: zodResolver(petSchema), defaultValues: emptyPetValues })
@@ -89,6 +87,7 @@ export default function PetsPage() {
 
   const openForm = (pet?: Pet) => {
     form.reset(petDefaults(pet))
+    mutation.reset()
     setDialog({ mode: "form", pet })
   }
 
@@ -101,31 +100,16 @@ export default function PetsPage() {
       birthDate: values.birthDate || undefined,
       notes: optionalString(values.notes),
     }
-    try {
-      if (dialog.pet) {
-        await api.put(`/pets/${dialog.pet.id}`, payload)
-      } else {
-        await api.post("/pets", payload)
-      }
-      setDialog({ mode: "closed" })
-      toast.success(t("saved"))
-      reload()
-    } catch (err) {
-      setDialog({ ...dialog, busyError: apiErrorMessage(err, tc("error")) })
-    }
+    const request = dialog.pet ? () => api.put(`/pets/${dialog.pet!.id}`, payload) : () => api.post("/pets", payload)
+    await mutation.run(request, { successMessage: t("saved"), onSuccess: () => { closeDialog(); reload() } })
   })
 
   const confirmDelete = async () => {
     if (dialog.mode !== "delete") return
-    setDialog({ ...dialog, busy: true, busyError: undefined })
-    try {
-      await api.delete(`/pets/${dialog.pet.id}`)
-      setDialog({ mode: "closed" })
-      toast.success(t("deleted"))
-      reload()
-    } catch (err) {
-      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
-    }
+    await mutation.run(() => api.delete(`/pets/${dialog.pet.id}`), {
+      successMessage: t("deleted"),
+      onSuccess: () => { closeDialog(); reload() },
+    })
   }
 
   return (
@@ -146,7 +130,7 @@ export default function PetsPage() {
           if (file) void uploadPhoto(file)
         }}
       />
-      {photoError && <p className="text-destructive mb-3 text-sm">{photoError}</p>}
+      {photoUpload.error && <p className="text-destructive mb-3 text-sm">{photoUpload.error}</p>}
 
       {isLoading || pets === undefined ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -218,7 +202,7 @@ export default function PetsPage() {
       )}
 
       {/* Create / edit */}
-      <Dialog open={dialog.mode === "form"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
+      <Dialog open={dialog.mode === "form"} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{dialog.mode === "form" && dialog.pet ? t("edit") : t("add")}</DialogTitle>
@@ -258,7 +242,7 @@ export default function PetsPage() {
                 <Textarea id="pet-notes" aria-invalid={!!errors.notes} {...form.register("notes")} />
                 {errors.notes?.message && <FieldError>{ta(errors.notes.message)}</FieldError>}
               </Field>
-              {dialog.mode === "form" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
+              {dialog.mode === "form" && mutation.error && <FieldError>{mutation.error}</FieldError>}
               <DialogFooter>
                 <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
                 <Button type="submit" disabled={isSubmitting}>
@@ -271,21 +255,21 @@ export default function PetsPage() {
       </Dialog>
 
       {/* Delete confirm */}
-      <Dialog open={dialog.mode === "delete"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
+      <Dialog open={dialog.mode === "delete"} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("deleteConfirm")}</DialogTitle>
             {dialog.mode === "delete" && <DialogDescription>{dialog.pet.name}</DialogDescription>}
           </DialogHeader>
-          {dialog.mode === "delete" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
+          {dialog.mode === "delete" && mutation.error && <FieldError>{mutation.error}</FieldError>}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
             <Button
               variant="destructive"
               onClick={() => void confirmDelete()}
-              disabled={dialog.mode === "delete" && dialog.busy}
+              disabled={mutation.busy}
             >
-              {dialog.mode === "delete" && dialog.busy ? tc("loading") : tc("delete")}
+              {mutation.busy ? tc("loading") : tc("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

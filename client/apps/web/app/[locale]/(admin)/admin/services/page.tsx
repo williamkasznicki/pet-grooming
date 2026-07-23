@@ -1,9 +1,8 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
-import { useForm } from "react-hook-form"
+import { RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -17,51 +16,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@workspace/ui/components/dialog"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
-import { Input } from "@workspace/ui/components/input"
+import { FieldError } from "@workspace/ui/components/field"
 import { Skeleton } from "@workspace/ui/components/skeleton"
-import { Textarea } from "@workspace/ui/components/textarea"
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
-
+import { MasterDataBadge } from "@/components/master-data-badge"
 import { useAxios } from "@/hooks/useAxios"
-import { api, apiErrorMessage } from "@/lib/api/client"
+import { useMutation } from "@/hooks/useMutation"
+import { api } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
-import { toast } from "sonner"
-import { RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
-
-import { SERVICE_ICONS, SERVICE_ICON_KEYS, ServiceIcon, type ServiceIconKey } from "@/lib/service-icons"
-import {
-  emptyServiceValues,
-  serviceDefaults,
-  serviceSchema,
-  type ServiceValues,
-} from "@/lib/factories/serviceFactory"
 import { Permissions } from "@/lib/permissions"
-import type { MasterDataItem, Service, ServiceTier } from "@/lib/types/api"
-import { optionalString } from "@/lib/utils/string"
+import { ServiceIcon } from "@/lib/service-icons"
+import type { MasterDataItem, Service } from "@/lib/types/api"
+import { ServiceFormDialog } from "./service-form-dialog"
+import { TierEditor } from "./tier-editor"
 
-const PRICE_PATTERN = /^\d{1,8}(\.\d{1,2})?$/
+/**
+ * Services & prices — the page orchestrates: fetch, permissions, which dialog
+ * is open. The form dialog and per-service tier editor own their own state.
+ */
 
-type DialogState =
-  | { mode: "closed" }
-  | { mode: "form"; service?: Service; busyError?: string }
-  | { mode: "delete"; service: Service; busy?: boolean; busyError?: string }
-
-type TierDraft = {
-  priceThb: string
-  durationMin: string
-}
+type DialogState = { mode: "closed" } | { mode: "form"; service?: Service } | { mode: "delete"; service: Service }
 
 export default function AdminServicesPage() {
   const t = useTranslations("admin.services")
-  const ta = useTranslations("auth")
   const tc = useTranslations("common")
   const { can } = useAuth()
 
@@ -75,116 +52,33 @@ export default function AdminServicesPage() {
   })
 
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
-  const [tierDrafts, setTierDrafts] = useState<Record<string, TierDraft>>({})
-  const [tierErrors, setTierErrors] = useState<Record<string, string | undefined>>({})
-  const [tierBusyKey, setTierBusyKey] = useState<string | null>(null)
-
-  const form = useForm<ServiceValues>({ resolver: zodResolver(serviceSchema), defaultValues: emptyServiceValues })
-  const { errors, isSubmitting } = form.formState
+  const deletion = useMutation()
+  const close = () => {
+    deletion.reset()
+    setDialog({ mode: "closed" })
+  }
+  const saved = () => {
+    close()
+    refetchServices()
+  }
 
   const isLoading = servicesLoading || sizesLoading || services === undefined
   const canManage = can(Permissions.MANAGE_SERVICES)
-
   const sizesById = useMemo(() => new Map(sizes.map((size) => [size.id, size])), [sizes])
-
-  const openForm = (service?: Service) => {
-    form.reset(serviceDefaults(service))
-    setDialog({ mode: "form", service })
-  }
-
-  const tierKey = (service: Service, size: MasterDataItem) => `${service.id}:${size.id}`
-
-  const tierFor = (service: Service, size: MasterDataItem): ServiceTier | undefined =>
-    service.tiers.find((tier) => tier.sizeId === size.id)
-
-  const tierDraftFor = (service: Service, size: MasterDataItem): TierDraft => {
-    const key = tierKey(service, size)
-    const tier = tierFor(service, size)
-    return tierDrafts[key] ?? { priceThb: tier?.priceThb ?? "", durationMin: tier ? String(tier.durationMin) : "" }
-  }
-
-  const updateTierDraft = (service: Service, size: MasterDataItem, patch: Partial<TierDraft>) => {
-    const key = tierKey(service, size)
-    setTierDrafts((drafts) => ({ ...drafts, [key]: { ...tierDraftFor(service, size), ...patch } }))
-    setTierErrors((errorsByKey) => ({ ...errorsByKey, [key]: undefined }))
-  }
-
-  const onSubmit = form.handleSubmit(async (values) => {
-    if (dialog.mode !== "form") return
-    const payload = {
-      name: values.name.trim(),
-      description: optionalString(values.description),
-      nameTh: optionalString(values.nameTh),
-      descriptionTh: optionalString(values.descriptionTh),
-      icon: optionalString(values.icon),
-      active: values.active,
-    }
-    try {
-      if (dialog.service) {
-        await api.put(`/services/${dialog.service.id}`, payload)
-      } else {
-        await api.post("/services", payload)
-      }
-      setDialog({ mode: "closed" })
-      toast.success(tc("saved"))
-      refetchServices()
-    } catch (err) {
-      setDialog({ ...dialog, busyError: apiErrorMessage(err, tc("error")) })
-    }
-  })
 
   const confirmDelete = async () => {
     if (dialog.mode !== "delete") return
-    setDialog({ ...dialog, busy: true, busyError: undefined })
-    try {
-      await api.delete(`/services/${dialog.service.id}`)
-      setDialog({ mode: "closed" })
-      toast.success(tc("deleted"))
-      refetchServices()
-    } catch (err) {
-      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
-    }
-  }
-
-  const saveTier = async (service: Service, size: MasterDataItem) => {
-    const key = tierKey(service, size)
-    const draft = tierDraftFor(service, size)
-    const durationMin = Number(draft.durationMin)
-    if (!PRICE_PATTERN.test(draft.priceThb) || !Number.isInteger(durationMin) || durationMin <= 0) {
-      setTierErrors((errorsByKey) => ({ ...errorsByKey, [key]: ta("validation.required") }))
-      return
-    }
-
-    const tier = tierFor(service, size)
-    setTierBusyKey(key)
-    setTierErrors((errorsByKey) => ({ ...errorsByKey, [key]: undefined }))
-    try {
-      if (tier) {
-        await api.put(`/services/${service.id}/tiers/${tier.id}`, {
-          priceThb: draft.priceThb,
-          durationMin,
-        })
-      } else {
-        await api.post(`/services/${service.id}/tiers`, {
-          sizeId: size.id,
-          priceThb: draft.priceThb,
-          durationMin,
-        })
-      }
-      toast.success(tc("saved"))
-      refetchServices()
-    } catch (err) {
-      setTierErrors((errorsByKey) => ({ ...errorsByKey, [key]: apiErrorMessage(err, tc("error")) }))
-    } finally {
-      setTierBusyKey(null)
-    }
+    await deletion.run(() => api.delete(`/services/${dialog.service.id}`), {
+      successMessage: tc("deleted"),
+      onSuccess: saved,
+    })
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        {canManage && <Button onClick={() => openForm()}>{t("add")}</Button>}
+        {canManage && <Button onClick={() => setDialog({ mode: "form" })}>{t("add")}</Button>}
       </div>
 
       {isLoading ? (
@@ -213,27 +107,16 @@ export default function AdminServicesPage() {
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
-                  {service.tiers.map((tier) => {
-                    const size = sizesById.get(tier.sizeId)
-                    return (
-                      <Badge
-                        key={tier.id}
-                        variant="outline"
-                        style={
-                          size?.hexBgColorCode
-                            ? { backgroundColor: size.hexBgColorCode, color: size.hexTextColorCode ?? undefined }
-                            : undefined
-                        }
-                      >
-                        {size?.code ?? tier.sizeId} · ฿{tier.priceThb} · {tier.durationMin} min
-                      </Badge>
-                    )
-                  })}
+                  {service.tiers.map((tier) => (
+                    <MasterDataBadge key={tier.id} variant="outline" colors={sizesById.get(tier.sizeId)}>
+                      {sizesById.get(tier.sizeId)?.code ?? tier.sizeId} · ฿{tier.priceThb} · {tier.durationMin} min
+                    </MasterDataBadge>
+                  ))}
                 </div>
 
                 {canManage && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openForm(service)}>
+                    <Button variant="outline" size="sm" onClick={() => setDialog({ mode: "form", service })}>
                       <RiPencilLine data-icon="inline-start" />
                       {t("edit")}
                     </Button>
@@ -244,172 +127,28 @@ export default function AdminServicesPage() {
                   </div>
                 )}
 
-                <div className="border-t pt-3">
-                  <h2 className="mb-2 text-sm font-medium">{t("tiers")}</h2>
-                  <div className="grid gap-2">
-                    {sizes.map((size) => {
-                      const key = tierKey(service, size)
-                      const draft = tierDraftFor(service, size)
-                      const busy = tierBusyKey === key
-                      return (
-                        <div key={size.id} className="grid gap-2 rounded-lg border p-2 md:grid-cols-[7rem_1fr_1fr_auto] md:items-end">
-                          <div className="flex items-center gap-2 md:pb-2">
-                            <Badge
-                              style={
-                                size.hexBgColorCode
-                                  ? { backgroundColor: size.hexBgColorCode, color: size.hexTextColorCode ?? undefined }
-                                  : undefined
-                              }
-                            >
-                              {size.code}
-                            </Badge>
-                          </div>
-                          <Field data-invalid={!!tierErrors[key]}>
-                            <FieldLabel htmlFor={`${key}-price`}>{t("price")}</FieldLabel>
-                            <Input
-                              id={`${key}-price`}
-                              inputMode="decimal"
-                              value={draft.priceThb}
-                              aria-invalid={!!tierErrors[key]}
-                              disabled={!canManage || busy}
-                              onChange={(event) => updateTierDraft(service, size, { priceThb: event.target.value })}
-                            />
-                          </Field>
-                          <Field data-invalid={!!tierErrors[key]}>
-                            <FieldLabel htmlFor={`${key}-duration`}>{t("durationMin")}</FieldLabel>
-                            <Input
-                              id={`${key}-duration`}
-                              inputMode="numeric"
-                              value={draft.durationMin}
-                              aria-invalid={!!tierErrors[key]}
-                              disabled={!canManage || busy}
-                              onChange={(event) => updateTierDraft(service, size, { durationMin: event.target.value })}
-                            />
-                          </Field>
-                          {canManage && (
-                            <Button size="sm" disabled={busy} onClick={() => void saveTier(service, size)}>
-                              {busy ? tc("loading") : tc("save")}
-                            </Button>
-                          )}
-                          {tierErrors[key] && <FieldError className="md:col-span-4">{tierErrors[key]}</FieldError>}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                <TierEditor service={service} sizes={sizes} canManage={canManage} onSaved={refetchServices} />
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      <Dialog open={dialog.mode === "form"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{dialog.mode === "form" && dialog.service ? t("edit") : t("add")}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(event) => void onSubmit(event)} noValidate>
-            <FieldGroup>
-              <Field data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="service-name">{t("name")}</FieldLabel>
-                <Input id="service-name" aria-invalid={!!errors.name} {...form.register("name")} />
-                {errors.name?.message && <FieldError>{ta(errors.name.message)}</FieldError>}
-              </Field>
-              <Field data-invalid={!!errors.description}>
-                <FieldLabel htmlFor="service-description">{t("description")}</FieldLabel>
-                <Textarea
-                  id="service-description"
-                  aria-invalid={!!errors.description}
-                  {...form.register("description")}
-                />
-                {errors.description?.message && <FieldError>{ta(errors.description.message)}</FieldError>}
-              </Field>
-              <Field data-invalid={!!errors.nameTh}>
-                <FieldLabel htmlFor="service-name-th">{t("nameTh")}</FieldLabel>
-                <Input id="service-name-th" aria-invalid={!!errors.nameTh} {...form.register("nameTh")} />
-                {errors.nameTh?.message && <FieldError>{ta(errors.nameTh.message)}</FieldError>}
-              </Field>
-              <Field data-invalid={!!errors.descriptionTh}>
-                <FieldLabel htmlFor="service-description-th">{t("descriptionTh")}</FieldLabel>
-                <Textarea
-                  id="service-description-th"
-                  aria-invalid={!!errors.descriptionTh}
-                  {...form.register("descriptionTh")}
-                />
-                {errors.descriptionTh?.message && <FieldError>{ta(errors.descriptionTh.message)}</FieldError>}
-              </Field>
-              <Field>
-                <FieldLabel>{t("icon")}</FieldLabel>
-                <Select
-                  value={form.watch("icon") || "none"}
-                  onValueChange={(value) =>
-                    form.setValue("icon", value === "none" || value === null ? "" : (value as string))
-                  }
-                >
-                  <SelectTrigger aria-label={t("icon")}>
-                    {/* Explicit label: Base UI only learns item labels after the popup first mounts */}
-                    <SelectValue>
-                      {(() => {
-                        const current = form.watch("icon")
-                        if (!current || !(current in SERVICE_ICONS)) return t("iconNone")
-                        const Icon = SERVICE_ICONS[current as ServiceIconKey]
-                        return (
-                          <span className="flex items-center gap-2">
-                            <Icon className="text-primary size-4" aria-hidden />
-                            {current}
-                          </span>
-                        )
-                      })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t("iconNone")}</SelectItem>
-                    {SERVICE_ICON_KEYS.map((key) => {
-                      const Icon = SERVICE_ICONS[key]
-                      return (
-                        <SelectItem key={key} value={key}>
-                          <span className="flex items-center gap-2">
-                            <Icon className="text-primary size-4" aria-hidden />
-                            {key}
-                          </span>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field orientation="horizontal" data-invalid={!!errors.active}>
-                <Input id="service-active" type="checkbox" className="size-4" {...form.register("active")} />
-                <FieldLabel htmlFor="service-active">{t("active")}</FieldLabel>
-                {errors.active?.message && <FieldError>{ta(errors.active.message)}</FieldError>}
-              </Field>
-              {dialog.mode === "form" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
-              <DialogFooter>
-                <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? tc("loading") : tc("save")}
-                </Button>
-              </DialogFooter>
-            </FieldGroup>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {dialog.mode === "form" && (
+        <ServiceFormDialog service={dialog.service ?? null} onClose={close} onSaved={saved} />
+      )}
 
-      <Dialog open={dialog.mode === "delete"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
+      <Dialog open={dialog.mode === "delete"} onOpenChange={(open) => !open && close()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("deleteConfirm")}</DialogTitle>
             {dialog.mode === "delete" && <DialogDescription>{dialog.service.name}</DialogDescription>}
           </DialogHeader>
-          {dialog.mode === "delete" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
+          {deletion.error && <FieldError>{deletion.error}</FieldError>}
           <DialogFooter>
             <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
-            <Button
-              variant="destructive"
-              onClick={() => void confirmDelete()}
-              disabled={dialog.mode === "delete" && dialog.busy}
-            >
-              {dialog.mode === "delete" && dialog.busy ? tc("loading") : tc("delete")}
+            <Button variant="destructive" onClick={() => void confirmDelete()} disabled={deletion.busy}>
+              {deletion.busy ? tc("loading") : tc("delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

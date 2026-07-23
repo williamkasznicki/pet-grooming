@@ -40,17 +40,9 @@ import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
+import type { AdminUser } from "@/lib/types/api"
 import { optionalString } from "@/lib/utils/string"
 import { RolesPanel, type Permission, type Role } from "./roles-panel"
-
-type AdminUser = {
-  id: string
-  email: string
-  name: string | null
-  phone: string | null
-  roles: string[]
-  createdAt: string
-}
 
 type UserValues = {
   name: string

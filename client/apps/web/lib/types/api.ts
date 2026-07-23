@@ -64,6 +64,48 @@ export type StaffPublic = {
   displayName: string
 }
 
+/** GET /users — admin listing (user:manage). */
+export type AdminUser = {
+  id: string
+  email: string
+  name: string | null
+  phone: string | null
+  roles: string[]
+  createdAt: string
+}
+
+export type WorkingHour = {
+  id: string
+  weekday: number
+  startMin: number
+  endMin: number
+}
+
+export type StaffTimeOff = {
+  id: string
+  isPermanent: boolean
+  startsAt: string | null
+  endsAt: string | null
+  reason: string | null
+}
+
+/** GET /staff/admin — full profiles with schedule (staff:manage). */
+export type StaffAdmin = {
+  id: string
+  userId: string
+  displayName: string | null
+  bio: string | null
+  active: boolean
+  user: {
+    name: string | null
+    email: string
+  }
+  workingHours: WorkingHour[]
+  timeOffs?: StaffTimeOff[]
+  timeOff?: StaffTimeOff[]
+  createdAt: string
+}
+
 export type AvailabilitySlot = {
   start: string
   end: string
