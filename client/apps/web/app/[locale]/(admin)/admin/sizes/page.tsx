@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
+import { toast } from "sonner"
 import { RiAddLine, RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
 import { Input } from "@workspace/ui/components/input"
@@ -158,6 +159,7 @@ export default function AdminSizesPage() {
         await api.post("/master-data/pet-sizes", payload)
       }
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -170,6 +172,7 @@ export default function AdminSizesPage() {
     try {
       await api.delete(`/master-data/pet-sizes/${dialog.size.id}`)
       setDialog({ mode: "closed" })
+      toast.success(tc("deleted"))
       refetch()
     } catch (err) {
       setDialog({
@@ -266,7 +269,7 @@ export default function AdminSizesPage() {
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => openForm(size)}>
                         <RiPencilLine data-icon="inline-start" />
-                        {t("edit")}
+                        {tc("edit")}
                       </Button>
                       <Button variant="destructive" size="sm" onClick={() => setDialog({ mode: "delete", size })}>
                         <RiDeleteBinLine data-icon="inline-start" />

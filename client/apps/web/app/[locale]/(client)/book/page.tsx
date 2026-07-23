@@ -2,7 +2,6 @@
 
 import { useFormatter, useLocale, useTranslations } from "next-intl"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Calendar } from "@workspace/ui/components/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
@@ -19,6 +18,7 @@ import { cn } from "@workspace/ui/lib/utils"
 import { RiCheckboxCircleFill } from "@remixicon/react"
 
 import { BookingRulesCard } from "@/components/booking-rules"
+import { MasterDataBadge } from "@/components/master-data-badge"
 import { PetAvatar } from "@/components/pet-avatar"
 import { Link } from "@/i18n/navigation"
 import { serviceDisplay, type MasterDataItem } from "@/lib/types/api"
@@ -27,18 +27,7 @@ import { useBookingWizard } from "@/hooks/book/useBookingWizard"
 import { DATE_BOUNDS, STEP_ORDER } from "@/hooks/book/bookingState"
 
 function SizeBadge({ size, children }: { size: MasterDataItem | undefined; children: React.ReactNode }) {
-  return (
-    <Badge
-      variant="secondary"
-      style={
-        size?.hexBgColorCode
-          ? { backgroundColor: size.hexBgColorCode, color: size.hexTextColorCode ?? undefined }
-          : undefined
-      }
-    >
-      {children}
-    </Badge>
-  )
+  return <MasterDataBadge colors={size}>{children}</MasterDataBadge>
 }
 
 export default function BookPage() {
@@ -289,3 +278,4 @@ export default function BookPage() {
     </div>
   )
 }
+

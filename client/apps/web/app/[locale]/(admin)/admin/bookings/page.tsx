@@ -2,10 +2,22 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { toast } from "sonner"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog"
+import { Field, FieldError, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
+import { Textarea } from "@workspace/ui/components/textarea"
 import {
   Select,
   SelectContent,
@@ -24,6 +36,7 @@ import {
 } from "@workspace/ui/components/table"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
+import { MasterDataBadge } from "@/components/master-data-badge"
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
@@ -39,6 +52,12 @@ const TRANSITIONS: Record<string, readonly string[]> = {
 
 type Filter = "today" | "upcoming" | "all"
 
+/** Status changes and payment both confirm first; transitions carry a remark. */
+type ConfirmDialog =
+  | { mode: "closed" }
+  | { mode: "status"; booking: Booking; target: string; note: string; busy?: boolean; busyError?: string }
+  | { mode: "paid"; booking: Booking; busy?: boolean; busyError?: string }
+
 export default function AdminBookingsPage() {
   const t = useTranslations("admin.bookings")
   const tc = useTranslations("common")
@@ -50,8 +69,7 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [staffFilter, setStaffFilter] = useState("all")
   const [search, setSearch] = useState("")
-  const [busyId, setBusyId] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<ConfirmDialog>({ mode: "closed" })
 
   // Filter options derived from the loaded data — always match what exists
   const { statusOptions, staffOptions } = useMemo(
@@ -77,29 +95,32 @@ export default function AdminBookingsPage() {
     return list.sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   }, [bookings, filter, statusFilter, staffFilter, search])
 
-  const transition = async (booking: Booking, toStatusCode: string) => {
-    setBusyId(booking.id)
-    setActionError(null)
+  const confirmStatus = async () => {
+    if (dialog.mode !== "status") return
+    setDialog({ ...dialog, busy: true, busyError: undefined })
     try {
-      await api.patch(`/bookings/${booking.id}/status`, { toStatusCode })
+      await api.patch(`/bookings/${dialog.booking.id}/status`, {
+        toStatusCode: dialog.target,
+        note: dialog.note.trim() || undefined,
+      })
+      setDialog({ mode: "closed" })
+      toast.success(tc("updated"))
       refetch()
     } catch (err) {
-      setActionError(apiErrorMessage(err, tc("error")))
-    } finally {
-      setBusyId(null)
+      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
     }
   }
 
-  const markPaid = async (booking: Booking) => {
-    setBusyId(booking.id)
-    setActionError(null)
+  const confirmPaid = async () => {
+    if (dialog.mode !== "paid") return
+    setDialog({ ...dialog, busy: true, busyError: undefined })
     try {
-      await api.patch(`/bookings/${booking.id}/payment`)
+      await api.patch(`/bookings/${dialog.booking.id}/payment`)
+      setDialog({ mode: "closed" })
+      toast.success(tc("updated"))
       refetch()
     } catch (err) {
-      setActionError(apiErrorMessage(err, tc("error")))
-    } finally {
-      setBusyId(null)
+      setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
     }
   }
 
@@ -160,8 +181,6 @@ export default function AdminBookingsPage() {
         </Select>
       </div>
 
-      {actionError && <p className="text-destructive text-sm">{actionError}</p>}
-
       {isLoading ? (
         <Skeleton className="h-64" />
       ) : visible.length === 0 ? (
@@ -184,7 +203,7 @@ export default function AdminBookingsPage() {
           <TableBody>
             {visible.map((booking) => {
               const targets = TRANSITIONS[booking.status.code] ?? []
-              const busy = busyId === booking.id
+              const allowed = can(Permissions.UPDATE_BOOKING)
               return (
                 <TableRow key={booking.id}>
                   <TableCell className="whitespace-nowrap tabular-nums">
@@ -196,50 +215,46 @@ export default function AdminBookingsPage() {
                   <TableCell>{booking.staffName}</TableCell>
                   <TableCell className="text-right tabular-nums">฿{Number(booking.priceThb)}</TableCell>
                   <TableCell>
-                    <Badge
-                      style={
-                        booking.status.hexBgColorCode
-                          ? {
-                              backgroundColor: booking.status.hexBgColorCode,
-                              color: booking.status.hexTextColorCode ?? undefined,
-                            }
-                          : undefined
-                      }
-                    >
-                      {booking.status.code}
-                    </Badge>
+                    <MasterDataBadge colors={booking.status}>{booking.status.code}</MasterDataBadge>
                   </TableCell>
                   <TableCell>
                     {booking.paymentStatus === "PAID" ? (
                       <Badge variant="secondary">PAID</Badge>
                     ) : (
                       // CANCELLED bookings are never payable (server enforces too)
-                      booking.status.code !== "CANCELLED" &&
-                      can(Permissions.UPDATE_BOOKING) && (
-                        <Button variant="outline" size="xs" disabled={busy} onClick={() => void markPaid(booking)}>
+                      booking.status.code !== "CANCELLED" && (
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          disabled={!allowed}
+                          title={allowed ? undefined : t("noPermission")}
+                          onClick={() => setDialog({ mode: "paid", booking })}
+                        >
                           {t("markPaid")}
                         </Button>
                       )
                     )}
                   </TableCell>
                   <TableCell className="flex gap-1">
-                    {can(Permissions.UPDATE_BOOKING) && targets.length === 0 && (
+                    {targets.length === 0 ? (
                       // Terminal states (COMPLETED/CANCELLED/NO_SHOW) have no
                       // transitions — show that explicitly instead of a blank
                       <span className="text-muted-foreground">—</span>
-                    )}
-                    {can(Permissions.UPDATE_BOOKING) &&
+                    ) : (
+                      // Visible even without permission — disabled with a hint
                       targets.map((target) => (
                         <Button
                           key={target}
                           variant={target === "CANCELLED" || target === "NO_SHOW" ? "destructive" : "outline"}
                           size="xs"
-                          disabled={busy}
-                          onClick={() => void transition(booking, target)}
+                          disabled={!allowed}
+                          title={allowed ? undefined : t("noPermission")}
+                          onClick={() => setDialog({ mode: "status", booking, target, note: "" })}
                         >
                           {actionLabel[target]}
                         </Button>
-                      ))}
+                      ))
+                    )}
                   </TableCell>
                 </TableRow>
               )
@@ -247,6 +262,69 @@ export default function AdminBookingsPage() {
           </TableBody>
         </Table>
       )}
+
+      {/* Status transition confirm + remark */}
+      <Dialog open={dialog.mode === "status"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {dialog.mode === "status" ? t("confirmStatusTitle", { action: actionLabel[dialog.target] ?? dialog.target }) : null}
+            </DialogTitle>
+            {dialog.mode === "status" && (
+              <DialogDescription>
+                {dialog.booking.serviceName} — {dialog.booking.petName} ·{" "}
+                {format.dateTime(new Date(dialog.booking.startsAt), { dateStyle: "medium", timeStyle: "short" })}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {dialog.mode === "status" && (
+            <>
+              <Field>
+                <FieldLabel htmlFor="status-note">{t("remark")}</FieldLabel>
+                <Textarea
+                  id="status-note"
+                  placeholder={t("remarkPlaceholder")}
+                  maxLength={500}
+                  value={dialog.note}
+                  onChange={(event) => setDialog({ ...dialog, note: event.target.value })}
+                />
+              </Field>
+              {dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
+              <DialogFooter>
+                <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
+                <Button
+                  variant={dialog.target === "CANCELLED" || dialog.target === "NO_SHOW" ? "destructive" : "default"}
+                  disabled={dialog.busy}
+                  onClick={() => void confirmStatus()}
+                >
+                  {dialog.busy ? tc("loading") : (actionLabel[dialog.target] ?? dialog.target)}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark-paid confirm */}
+      <Dialog open={dialog.mode === "paid"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("confirmPaidTitle")}</DialogTitle>
+            {dialog.mode === "paid" && (
+              <DialogDescription>
+                {dialog.booking.clientName} · {dialog.booking.serviceName} · ฿{Number(dialog.booking.priceThb)}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {dialog.mode === "paid" && dialog.busyError && <FieldError>{dialog.busyError}</FieldError>}
+          <DialogFooter>
+            <DialogClose render={<Button type="button" variant="outline" />}>{tc("cancel")}</DialogClose>
+            <Button disabled={dialog.mode === "paid" && dialog.busy} onClick={() => void confirmPaid()}>
+              {dialog.mode === "paid" && dialog.busy ? tc("loading") : t("markPaid")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

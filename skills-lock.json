@@ -1,11 +1,47 @@
 {
   "version": 1,
   "skills": {
+    "architect": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/architect/SKILL.md",
+      "computedHash": "3ebf1912f90b09b0ccd255f20385864f5f35ec74690dc2d6a9c2ff3a43a0a2e3"
+    },
+    "audit": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/audit/SKILL.md",
+      "computedHash": "40f113126fc74025afe274015dee8a20f27c98327d228eba7689a21eb702d894"
+    },
+    "check": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/check/SKILL.md",
+      "computedHash": "d8222ab9774be7eaddca37f59f429448ce68425be5ac962fcbac2e333f56a76a"
+    },
+    "debug": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/debug/SKILL.md",
+      "computedHash": "93d46d67382778cd6de27c46ebf3659ac0de77d61becd3f401094d7b1e4e6ab1"
+    },
     "design-system": {
       "source": "affaan-m/ECC",
       "sourceType": "github",
       "skillPath": "skills/design-system/SKILL.md",
       "computedHash": "04ba4a8436c2d2fadcbeac7bc1ca8b8434096ebb6bf724426f5c2468430477d5"
+    },
+    "develop": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/develop/SKILL.md",
+      "computedHash": "9a6a49118aeb5447b9a1a0b146561e80852432eafa4d774fdde39ff3d6f86138"
+    },
+    "document": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/document/SKILL.md",
+      "computedHash": "afb19698d824c6cb58abebfc96cdb1779cfa80543883d22fdbbd95989f7c78c7"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -43,11 +79,29 @@
       "skillPath": "skills/prisma-patterns/SKILL.md",
       "computedHash": "eb156f69836bc57b88077f0df10c62e50c6fc867ad16216e7cdc65de7d9284ff"
     },
+    "scope": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/scope/SKILL.md",
+      "computedHash": "00208bf2cb91a11ad5834cd32705392a5dac356a4aa980f9807b8f0b94ee0e4c"
+    },
     "skill-scout": {
       "source": "affaan-m/ECC",
       "sourceType": "github",
       "skillPath": "skills/skill-scout/SKILL.md",
       "computedHash": "01312193cd23fdc0c8eb65a8b507bd9a63c3474805451c088e500dd6903d4b2c"
+    },
+    "sync": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/sync/SKILL.md",
+      "computedHash": "8570b5210e79088fc74081be24f5f18df13992c3334b27a74a6b72c6446952bb"
+    },
+    "test": {
+      "source": "jsmastery-pro/skills",
+      "sourceType": "github",
+      "skillPath": "skills/test/SKILL.md",
+      "computedHash": "c6923eca067329ab86293def4a61aefe1492f4eaf511e36903614242442c1974"
     },
     "web-design-guidelines": {
       "source": "vercel-labs/agent-skills",

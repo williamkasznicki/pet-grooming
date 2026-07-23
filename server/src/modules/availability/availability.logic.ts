@@ -40,6 +40,7 @@ export function mergeIntervals ( intervals: MinuteInterval[] ): MinuteInterval[]
 /**
  * Slot starts for ONE staff member.
  *
+ * Complexity: O(W log W + B log B + S). Windows and busy lists are each sorted
  * and coalesced once, then a single forward pointer walks the disjoint busy
  * list while candidates advance monotonically. No per-candidate rescans; S
  * (the emitted candidate count) is a lower bound for any correct algorithm.

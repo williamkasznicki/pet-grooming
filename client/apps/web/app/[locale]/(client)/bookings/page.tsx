@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { toast } from "sonner"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import {
@@ -28,6 +28,7 @@ import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
 import { BookingRulesCard } from "@/components/booking-rules"
+import { MasterDataBadge } from "@/components/master-data-badge"
 import { Link } from "@/i18n/navigation"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAxios } from "@/hooks/useAxios"
@@ -74,6 +75,7 @@ export default function BookingsPage() {
     try {
       await api.post(`/bookings/${dialog.booking.id}/cancel`)
       setDialog({ mode: "closed" })
+      toast.success(t("cancelled"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -137,18 +139,7 @@ export default function BookingsPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <CardTitle className="text-base">{booking.serviceName}</CardTitle>
-                  <Badge
-                    style={
-                      booking.status.hexBgColorCode
-                        ? {
-                            backgroundColor: booking.status.hexBgColorCode,
-                            color: booking.status.hexTextColorCode ?? undefined,
-                          }
-                        : undefined
-                    }
-                  >
-                    {booking.status.code}
-                  </Badge>
+                  <MasterDataBadge colors={booking.status}>{booking.status.code}</MasterDataBadge>
                 </div>
               </CardHeader>
               <CardContent className="flex flex-col gap-2 text-sm">
@@ -202,3 +193,4 @@ export default function BookingsPage() {
     </div>
   )
 }
+

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { toast } from "sonner"
 import { RiAddLine, RiDeleteBinLine, RiPencilLine, RiShieldUserLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
@@ -114,6 +115,7 @@ export default function AdminUsersPage() {
         phone: optionalString(values.phone),
       })
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetchUsers()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -126,6 +128,7 @@ export default function AdminUsersPage() {
     try {
       await api.delete(`/users/${dialog.user.id}`)
       setDialog({ mode: "closed" })
+      toast.success(tc("deleted"))
       refetchUsers()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -141,6 +144,7 @@ export default function AdminUsersPage() {
       const role = roles?.find((item) => item.id === roleId)
       setDialog({ mode: "roles", user: { ...dialog.user, roles: role ? [...dialog.user.roles, role.name] : dialog.user.roles } })
       setSelectedRoleId("")
+      toast.success(tc("updated"))
       refetchUsers()
     } catch (err) {
       setDialog({ ...dialog, busyRoleId: undefined, busyError: apiErrorMessage(err, tc("error")) })
@@ -153,6 +157,7 @@ export default function AdminUsersPage() {
     try {
       await api.delete(`/users/${dialog.user.id}/roles/${role.id}`)
       setDialog({ mode: "roles", user: { ...dialog.user, roles: dialog.user.roles.filter((name) => name !== role.name) } })
+      toast.success(tc("updated"))
       refetchUsers()
     } catch (err) {
       setDialog({ ...dialog, busyRoleId: undefined, busyError: apiErrorMessage(err, tc("error")) })

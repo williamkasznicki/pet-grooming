@@ -8,6 +8,10 @@
     "back": "Back",
     "next": "Next",
     "error": "Something went wrong. Please try again.",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "updated": "Updated",
+    "edit": "Edit",
     "errorTitle": "Something went wrong",
     "tryAgain": "Try again"
   },
@@ -165,7 +169,12 @@
       "filterStatus": "Status",
       "allStatuses": "All statuses",
       "filterStaff": "Groomer",
-      "allStaff": "All groomers"
+      "allStaff": "All groomers",
+      "noPermission": "You don't have permission for this action",
+      "confirmStatusTitle": "{action} this booking?",
+      "confirmPaidTitle": "Mark this booking as paid?",
+      "remark": "Remark (optional)",
+      "remarkPlaceholder": "Why is the status changing? Kept in the booking history."
     },
     "services": {
       "title": "Services & Prices",

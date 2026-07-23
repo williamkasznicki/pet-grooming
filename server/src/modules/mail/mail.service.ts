@@ -1,5 +1,7 @@
+import { render } from '@react-email/components';
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
+import { BookingConfirmedTemplate } from './templates/booking-confirmed.template.js';
 
 export type SendMailInput = {
   to: string;
@@ -57,21 +59,24 @@ export class MailService {
     startsAtLocal: string;
     priceThb: string;
   } ): Promise<void> {
+    // React Email template (templates/) rendered to inline-styled HTML —
+    // all templates share the spa-lagoon EmailLayout
+    const html = await render(
+      BookingConfirmedTemplate( {
+        clientName: input.clientName,
+        petName: input.petName,
+        serviceName: input.serviceName,
+        staffName: input.staffName,
+        startsAtLocal: input.startsAtLocal,
+        priceThb: input.priceThb,
+        bookingsUrl: `${ process.env.FRONTEND_URL ?? 'http://localhost:3000' }/bookings`,
+      } ),
+    );
+
     await this.send( {
       to: input.to,
       subject: `Booking confirmed — ${ input.serviceName } for ${ input.petName }`,
-      html: `
-        <p>Hi ${ input.clientName},</p>
-        <p>Your booking is confirmed:</p>
-        <ul>
-          <li><strong>Service:</strong> ${ input.serviceName}</li>
-          <li><strong>Pet:</strong> ${ input.petName}</li>
-          <li><strong>Groomer:</strong> ${ input.staffName}</li>
-          <li><strong>When:</strong> ${ input.startsAtLocal}</li>
-          <li><strong>Price:</strong> ${ input.priceThb} THB (pay at shop)</li>
-        </ul>
-        <p>See you soon! 🐾</p>
-      `,
+      html,
     } );
   }
 }

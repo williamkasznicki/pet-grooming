@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { useFormatter, useTranslations } from "next-intl"
+import { toast } from "sonner"
 import { RiDeleteBinLine, RiPencilLine, RiTimeLine } from "@remixicon/react"
 
 import { Badge } from "@workspace/ui/components/badge"
@@ -249,6 +250,7 @@ export default function AdminStaffPage() {
         })
       }
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -277,6 +279,7 @@ export default function AdminStaffPage() {
     try {
       await api.put(`/staff/${dialog.staff.id}/working-hours`, { entries })
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -298,6 +301,7 @@ export default function AdminStaffPage() {
         reason: optionalString(timeOffValues.reason),
       })
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -310,6 +314,7 @@ export default function AdminStaffPage() {
     try {
       await api.delete(`/staff/${dialog.staff.id}/time-off/${dialog.timeOff.id}`)
       setDialog({ mode: "closed" })
+      toast.success(tc("deleted"))
       refetch()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -631,3 +636,4 @@ export default function AdminStaffPage() {
     </div>
   )
 }
+

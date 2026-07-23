@@ -33,6 +33,7 @@ import {
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { toast } from "sonner"
 import { RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
 import { SERVICE_ICONS, SERVICE_ICON_KEYS, ServiceIcon, type ServiceIconKey } from "@/lib/service-icons"
@@ -125,6 +126,7 @@ export default function AdminServicesPage() {
         await api.post("/services", payload)
       }
       setDialog({ mode: "closed" })
+      toast.success(tc("saved"))
       refetchServices()
     } catch (err) {
       setDialog({ ...dialog, busyError: apiErrorMessage(err, tc("error")) })
@@ -137,6 +139,7 @@ export default function AdminServicesPage() {
     try {
       await api.delete(`/services/${dialog.service.id}`)
       setDialog({ mode: "closed" })
+      toast.success(tc("deleted"))
       refetchServices()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -168,6 +171,7 @@ export default function AdminServicesPage() {
           durationMin,
         })
       }
+      toast.success(tc("saved"))
       refetchServices()
     } catch (err) {
       setTierErrors((errorsByKey) => ({ ...errorsByKey, [key]: apiErrorMessage(err, tc("error")) }))

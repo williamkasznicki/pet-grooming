@@ -4,9 +4,9 @@ import { useMemo, useRef, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { RiCameraLine, RiDeleteBinLine, RiPencilLine } from "@remixicon/react"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import {
@@ -23,6 +23,7 @@ import { Input } from "@workspace/ui/components/input"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import { MasterDataBadge } from "@/components/master-data-badge"
 import { PetAvatar } from "@/components/pet-avatar"
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
@@ -73,6 +74,7 @@ export default function PetsPage() {
       const body = new FormData()
       body.append("photo", file)
       await api.post(`/pets/${pet.id}/photo`, body)
+      toast.success(t("saved"))
       reload()
     } catch (err) {
       setPhotoError(apiErrorMessage(err, tc("error")))
@@ -106,6 +108,7 @@ export default function PetsPage() {
         await api.post("/pets", payload)
       }
       setDialog({ mode: "closed" })
+      toast.success(t("saved"))
       reload()
     } catch (err) {
       setDialog({ ...dialog, busyError: apiErrorMessage(err, tc("error")) })
@@ -118,6 +121,7 @@ export default function PetsPage() {
     try {
       await api.delete(`/pets/${dialog.pet.id}`)
       setDialog({ mode: "closed" })
+      toast.success(t("deleted"))
       reload()
     } catch (err) {
       setDialog({ ...dialog, busy: false, busyError: apiErrorMessage(err, tc("error")) })
@@ -182,17 +186,7 @@ export default function PetsPage() {
                       </button>
                       <CardTitle className="truncate text-base">{pet.name}</CardTitle>
                     </div>
-                    {size && (
-                      <Badge
-                        style={
-                          size.hexBgColorCode
-                            ? { backgroundColor: size.hexBgColorCode, color: size.hexTextColorCode ?? undefined }
-                            : undefined
-                        }
-                      >
-                        {formatBand(size)}
-                      </Badge>
-                    )}
+                    {size && <MasterDataBadge colors={size}>{formatBand(size)}</MasterDataBadge>}
                   </div>
                 </CardHeader>
                 <CardContent className="flex min-h-24 flex-col gap-3">
@@ -299,3 +293,4 @@ export default function PetsPage() {
     </div>
   )
 }
+

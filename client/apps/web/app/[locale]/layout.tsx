@@ -5,6 +5,7 @@ import { notFound } from "next/navigation"
 import { Anuphan, Geist_Mono } from "next/font/google"
 
 import "@workspace/ui/globals.css"
+import { Toaster } from "@workspace/ui/components/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth/auth-context"
 import { getSessionUser } from "@/lib/auth/get-session"
@@ -48,6 +49,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
             <Suspense>
               <AuthProvider sessionPromise={sessionPromise}>{children}</AuthProvider>
             </Suspense>
+            <Toaster position="top-center" />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
