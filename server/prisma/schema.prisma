@@ -104,18 +104,38 @@ model User {
   phone        String?
   lineUserId   String? @unique // LINE Login scaffold — unused until LINE integration lands
 
-  userRoles      UserRole[]
-  pets           Pet[]
-  clientBookings Booking[]            @relation("ClientBookings")
-  staffProfile   StaffProfile?
-  refreshTokens  RefreshToken[]
-  statusChanges  BookingStatusEvent[]
+  // Set the first time an emailed OTP is verified (proves control of the inbox)
+  emailVerifiedAt DateTime?
+
+  userRoles         UserRole[]
+  pets              Pet[]
+  clientBookings    Booking[]            @relation("ClientBookings")
+  staffProfile      StaffProfile?
+  refreshTokens     RefreshToken[]
+  statusChanges     BookingStatusEvent[]
+  verificationCodes VerificationCode[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   @@index([deletedAt, createdAt])
+}
+
+// One-time 6-digit codes emailed for login 2FA and password reset.
+// Stored as a sha256 hash; verified by hash match, expiry, unconsumed, attempts.
+model VerificationCode {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose    String // "login" | "reset"
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, purpose])
 }
 
 model RefreshToken {

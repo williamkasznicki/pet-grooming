@@ -5,6 +5,13 @@ import type { AuthUser } from '../../common/types/auth.types.js';
 import { AuthService } from './auth.service.js';
 import { AuthResponseDto, AuthUserDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
+import {
+  ForgotPasswordDto,
+  ForgotPasswordResultDto,
+  LoginResultDto,
+  ResetPasswordDto,
+  VerifyLoginOtpDto,
+} from './dto/otp.dto.js';
 import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 
@@ -23,9 +30,32 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: AuthResponseDto })
-  login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
+  @ApiOkResponse({ type: LoginResultDto, description: 'Tokens, or an OTP challenge when 2FA is on' })
+  login(@Body() dto: LoginDto): Promise<LoginResultDto> {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Post('login/verify')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Verify the emailed login code, get tokens' })
+  verifyLoginOtp(@Body() dto: VerifyLoginOtpDto): Promise<AuthResponseDto> {
+    return this.authService.verifyLoginOtp(dto);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: ForgotPasswordResultDto, description: 'Always ok; emails a reset code if the account exists' })
+  forgotPassword(@Body() dto: ForgotPasswordDto): Promise<ForgotPasswordResultDto> {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  resetPassword(@Body() dto: ResetPasswordDto): Promise<void> {
+    return this.authService.resetPassword(dto);
   }
 
   @Public()

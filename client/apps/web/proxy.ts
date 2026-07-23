@@ -13,7 +13,7 @@ const handleI18n = createIntlMiddleware(routing)
  * broken-shell flash); the enforcement is NestJS guards returning 401/403 on
  * every API call, which the axios client also reacts to (lib/api/client.ts).
  */
-const PUBLIC_PATHS = ["/", "/login", "/register", "/book"]
+const PUBLIC_PATHS = ["/", "/login", "/register", "/book", "/forgot-password", "/reset-password"]
 
 function stripLocale(pathname: string): string {
   for (const locale of routing.locales) {

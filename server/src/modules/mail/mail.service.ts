@@ -2,6 +2,8 @@ import { render } from '@react-email/components';
 import { Injectable, Logger } from '@nestjs/common';
 import { Resend } from 'resend';
 import { BookingConfirmedTemplate } from './templates/booking-confirmed.template.js';
+import { LoginOtpTemplate } from './templates/login-otp.template.js';
+import { PasswordResetTemplate } from './templates/password-reset.template.js';
 
 export type SendMailInput = {
   to: string;
@@ -35,10 +37,13 @@ export class MailService {
       return;
     }
 
+    // In dev, Resend's test key only delivers to the account owner — redirect
+    // all mail there (set MAIL_DEV_REDIRECT to your Resend account email).
+    const recipient =
+      process.env.NODE_ENV === 'production' ? input.to : ( process.env.MAIL_DEV_REDIRECT ?? input.to );
     const { error } = await this.resend.emails.send( {
       from: this.from,
-      // to: input.to,
-      to: process.env.NODE_ENV === 'production' ? input.to : 'williamkasznicki@hotmail.com',
+      to: recipient,
       subject: input.subject,
       html: input.html,
     } );
@@ -78,5 +83,21 @@ export class MailService {
       subject: `Booking confirmed — ${ input.serviceName } for ${ input.petName }`,
       html,
     } );
+  }
+
+  /** Login 2FA code. Never log the code (AGENTS.md: no verification tokens). */
+  async sendLoginOtp ( input: { to: string; name: string; code: string; expiresInMinutes: number } ): Promise<void> {
+    const html = await render(
+      LoginOtpTemplate( { name: input.name, code: input.code, expiresInMinutes: input.expiresInMinutes } ),
+    );
+    await this.send( { to: input.to, subject: 'Your Pet Grooming login code', html } );
+  }
+
+  /** Password reset code. */
+  async sendPasswordReset ( input: { to: string; name: string; code: string; expiresInMinutes: number } ): Promise<void> {
+    const html = await render(
+      PasswordResetTemplate( { name: input.name, code: input.code, expiresInMinutes: input.expiresInMinutes } ),
+    );
+    await this.send( { to: input.to, subject: 'Reset your Pet Grooming password', html } );
   }
 }

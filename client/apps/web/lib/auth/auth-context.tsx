@@ -13,10 +13,16 @@ export type AuthUser = {
   permissions: string[]
 }
 
+/** Login either signs in directly, or returns a 2FA challenge to complete. */
+export type LoginOutcome =
+  | { status: "authenticated"; user: AuthUser }
+  | { status: "otp"; challengeId: string; devCode: string | null }
+
 type AuthContextValue = {
   user: AuthUser | null
   can: (permission: Permissions) => boolean
-  login: (email: string, password: string) => Promise<AuthUser>
+  login: (email: string, password: string) => Promise<LoginOutcome>
+  verifyLoginOtp: (challengeId: string, code: string) => Promise<AuthUser>
   register: (input: { email: string; password: string; name: string; phone?: string }) => Promise<AuthUser>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -44,7 +50,17 @@ export function AuthProvider({
       user,
       can: (permission) => (user ? can(user.permissions, permission) : false),
       login: async (email, password) => {
-        const res = await authApi.post<{ user: AuthUser }>("/login", { email, password })
+        const res = await authApi.post<
+          { user: AuthUser } | { requiresOtp: true; challengeId: string; devCode: string | null }
+        >("/login", { email, password })
+        if ("requiresOtp" in res.data) {
+          return { status: "otp", challengeId: res.data.challengeId, devCode: res.data.devCode }
+        }
+        setUser(res.data.user)
+        return { status: "authenticated", user: res.data.user }
+      },
+      verifyLoginOtp: async (challengeId, code) => {
+        const res = await authApi.post<{ user: AuthUser }>("/login-verify", { challengeId, code })
         setUser(res.data.user)
         return res.data.user
       },

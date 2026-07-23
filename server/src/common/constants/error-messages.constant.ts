@@ -58,6 +58,8 @@ export const ErrorMessages = {
   UNAUTHENTICATED: 'Authentication required.',
   INVALID_TOKEN: 'Invalid or expired token.',
   FORBIDDEN: 'You do not have permission to perform this action.',
+  OTP_INVALID: 'That code is incorrect or has expired. Request a new one.',
+  OTP_TOO_MANY_ATTEMPTS: 'Too many incorrect attempts. Request a new code.',
 } as const;
 
 export type ErrorMessageKey = keyof typeof ErrorMessages;
