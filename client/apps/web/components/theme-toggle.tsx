@@ -8,7 +8,7 @@ import { Button } from "@workspace/ui/components/button"
 
 const emptySubscribe = () => () => {}
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   // Theme is unknown until hydration — canonical effect-free "is client" guard
   const mounted = useSyncExternalStore(
@@ -21,6 +21,7 @@ export function ThemeToggle() {
     <Button
       variant="ghost"
       size="icon-sm"
+      className={className}
       aria-label="Toggle theme"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >

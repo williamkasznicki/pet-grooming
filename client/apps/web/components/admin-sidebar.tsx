@@ -31,6 +31,11 @@ export function AdminSidebar() {
 
   const items = NAV_ITEMS.filter((item) => item.permission === null || can(item.permission))
 
+  // Sidebar lives on its own (dark teal ink) surface — sidebar-* tokens, not
+  // the page tokens, so it stays inky in light mode (design-system signature).
+  const itemClass =
+    "justify-start text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+
   const links = (onNavigate?: () => void) => (
     <>
       {items.map((item) => (
@@ -38,7 +43,10 @@ export function AdminSidebar() {
           key={item.href}
           variant="ghost"
           size="sm"
-          className={cn("justify-start", pathname === item.href && "bg-muted font-semibold")}
+          className={cn(
+            itemClass,
+            pathname === item.href && "bg-sidebar-accent text-sidebar-accent-foreground font-semibold",
+          )}
           render={<Link href={item.href} onClick={onNavigate} />}
         >
           {t(item.key)}
@@ -48,26 +56,27 @@ export function AdminSidebar() {
   )
 
   const toggles = (
-    <div className="flex items-center gap-1 border-t pt-2">
-      <LocaleToggle />
-      <ThemeToggle />
+    <div className="border-sidebar-border flex items-center gap-1 border-t pt-2">
+      <LocaleToggle className={itemClass} />
+      <ThemeToggle className={itemClass} />
     </div>
   )
 
   return (
     <>
       {/* Mobile: hamburger bar; the panel OVERLAYS content (absolute), never pushes it */}
-      <div className="bg-background relative z-40 border-b md:hidden">
-        <div className="bg-muted/30 flex h-12 items-center justify-between px-4">
-          <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
+      <div className="bg-sidebar text-sidebar-foreground border-sidebar-border relative z-40 border-b md:hidden">
+        <div className="flex h-12 items-center justify-between px-4">
+          <p className="text-sidebar-foreground/60 text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
           <div className="flex items-center gap-1">
-            <LocaleToggle />
-            <ThemeToggle />
+            <LocaleToggle className={itemClass} />
+            <ThemeToggle className={itemClass} />
             <Button
               variant="ghost"
               size="icon-sm"
               aria-label="Menu"
               aria-expanded={menuOpen}
+              className={itemClass}
               onClick={() => setMenuOpen((open) => !open)}
             >
               {menuOpen ? <RiCloseLine /> : <RiMenuLine />}
@@ -75,9 +84,9 @@ export function AdminSidebar() {
           </div>
         </div>
         {menuOpen && (
-          <nav className="bg-background absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b px-2 py-2 shadow-lg">
+          <nav className="bg-sidebar border-sidebar-border absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b px-2 py-2 shadow-lg">
             {links(() => setMenuOpen(false))}
-            <Button variant="ghost" size="sm" className="justify-start" render={<Link href="/" />}>
+            <Button variant="ghost" size="sm" className={itemClass} render={<Link href="/" />}>
               {t("backToSite")}
             </Button>
           </nav>
@@ -85,11 +94,13 @@ export function AdminSidebar() {
       </div>
 
       {/* Desktop: STICKY sidebar — stays in place while the content scrolls */}
-      <aside className="bg-muted/30 sticky top-0 hidden h-svh w-52 shrink-0 flex-col gap-1 self-start overflow-y-auto border-r p-4 md:flex">
-        <p className="text-muted-foreground mb-3 px-2 text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
+      <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh w-52 shrink-0 flex-col gap-1 self-start overflow-y-auto border-r p-4 md:flex">
+        <p className="text-sidebar-foreground/60 mb-3 px-2 text-xs font-semibold tracking-widest uppercase">
+          🐾 Admin
+        </p>
         {links()}
         <div className="mt-auto flex flex-col gap-2 pt-4">
-          <Button variant="ghost" size="sm" className="justify-start" render={<Link href="/" />}>
+          <Button variant="ghost" size="sm" className={itemClass} render={<Link href="/" />}>
             {t("backToSite")}
           </Button>
           {toggles}

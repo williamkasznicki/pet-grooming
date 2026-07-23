@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { BookingRulesCard } from "@/components/booking-rules"
 import { Link } from "@/i18n/navigation"
 import type { MasterDataItem } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
@@ -269,6 +270,8 @@ export default function BookPage() {
           </CardContent>
         </Card>
       )}
+
+      <BookingRulesCard className="border-border text-muted-foreground mt-10 border-t pt-5" />
     </div>
   )
 }

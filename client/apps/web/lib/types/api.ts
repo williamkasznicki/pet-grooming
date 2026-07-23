@@ -62,6 +62,16 @@ export type Availability = {
   slots: AvailabilitySlot[]
 }
 
+/** GET /booking-rules — public projection of admin-editable ShopSettings. */
+export type BookingRules = {
+  timezone: string
+  openMin: number
+  closeMin: number
+  slotStepMin: number
+  minNoticeMin: number
+  cancelCutoffHours: number
+}
+
 export type BookingStatusRef = {
   code: string
   hexBgColorCode: string | null

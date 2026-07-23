@@ -4,7 +4,7 @@ import { useLocale } from "next-intl"
 
 import { Button } from "@workspace/ui/components/button"
 
-export function LocaleToggle() {
+export function LocaleToggle({ className }: { className?: string }) {
   const locale = useLocale()
 
   const switchLocale = () => {
@@ -17,7 +17,7 @@ export function LocaleToggle() {
   }
 
   return (
-    <Button variant="ghost" size="sm" onClick={switchLocale}>
+    <Button variant="ghost" size="sm" className={className} onClick={switchLocale}>
       {locale === "en" ? "ไทย" : "EN"}
     </Button>
   )

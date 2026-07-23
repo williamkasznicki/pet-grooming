@@ -90,7 +90,15 @@
     "confirmCta": "Confirm booking",
     "success": "Booking confirmed! See you soon 🐾",
     "viewBookings": "View my bookings",
-    "slotTaken": "That slot was just taken — pick another one."
+    "slotTaken": "That slot was just taken — pick another one.",
+    "rules": {
+      "title": "Booking rules",
+      "hours": "The shop is open {open}–{close} (shop local time).",
+      "noticeHours": "Book at least {hours, plural, one {# hour} other {# hours}} ahead.",
+      "noticeMinutes": "Book at least {minutes} minutes ahead.",
+      "cancel": "Cancel free of charge up to {hours, plural, one {# hour} other {# hours}} before your appointment.",
+      "payment": "Pay at the shop — no prepayment needed."
+    }
   },
   "admin": {
     "title": "Admin",

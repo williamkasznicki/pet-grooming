@@ -2,8 +2,10 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '../../generated/prisma/client.js';
 import { ErrorMessages } from '../../common/constants/error-messages.constant.js';
 import { translatePrismaError } from '../../common/utils/prisma-error.util.js';
+import { BookingRulesResponseDto } from './dto/booking-rules-response.dto.js';
 import { ShopSettingResponseDto } from './dto/shop-setting-response.dto.js';
 import { UpdateShopSettingDto } from './dto/update-shop-setting.dto.js';
+import { parseOperatingSettings } from './shop-operating-settings.js';
 import { ShopSettingsRepository } from './shop-settings.repository.js';
 
 @Injectable()
@@ -13,6 +15,12 @@ export class ShopSettingsService {
   async findAll(): Promise<ShopSettingResponseDto[]> {
     const settings = await this.shopSettingsRepository.findManyOrdered();
     return settings.map((setting) => ShopSettingResponseDto.from(setting));
+  }
+
+  /** Public booking-rule projection (see BookingRulesController). */
+  async bookingRules(): Promise<BookingRulesResponseDto> {
+    const rows = await this.shopSettingsRepository.findManyOrdered();
+    return BookingRulesResponseDto.from(parseOperatingSettings(rows));
   }
 
   async findOne(key: string): Promise<ShopSettingResponseDto> {

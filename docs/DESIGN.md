@@ -49,8 +49,13 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
   - `(client)/` — booking-facing pages
   - `(admin)/` — staff/admin pages behind RBAC middleware
   - Each group has its own root layout, nav, and theme.
-- **UI foundation (respect it, don't replace it)**: shadcn/ui `base-lyra` style, neutral base color, CSS variables, Remix icons, dark mode via `theme-provider.tsx`, shared components in `client/packages/ui`.
-- Design workflow when frontend starts: `frontend-design` skill for direction (constrained to existing tokens), `design-system` for token generation/audit, `web-design-guidelines` for review, `dataviz` for admin charts.
+- **Design system: "wash station" (locked 2026-07-23, supersedes the base-lyra-neutral rule)** — single source of truth is `client/packages/ui/src/styles/globals.css`:
+  - Palette (oklch tokens, light + dark): **lagoon** teal primary ≈ `#1E8A93`, deep `#14666E`, ink text `#143B3E`, mist surfaces `#E9F6F7`, warm **collar amber** as the chart counterpoint. Backgrounds are faintly teal-tinted, never pure white.
+  - Type: **Mitr** (rounded, Thai-native) on every `h1–h4` via `--font-display`; body is **Anuphan** (Thai loopless grotesk) via `--font-sans`; **Geist Mono** for codes/data. Both locales get native glyphs.
+  - Shape/motion: radius `0.8rem`; `animate-rise` utility for staggered page-load reveals (`--rise-delay`); landing blob morph. All motion respects `prefers-reduced-motion`.
+  - Signature: the **admin sidebar stays deep-teal ink even in light mode** (`--sidebar-*` tokens); components must use tokens, never hex literals (master-data badge colors are the one data-driven exception).
+- Booking rules shown to clients come from `GET /booking-rules` (public projection of `ShopSetting`) — rendered by `components/booking-rules.tsx`, never hardcoded.
+- Design workflow: `frontend-design` skill for direction (constrained to these tokens), `design-system` for token generation/audit, `web-design-guidelines` for review, `dataviz` for admin charts.
 
 ## Server conventions
 

@@ -19,6 +19,7 @@ import { FieldError } from "@workspace/ui/components/field"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
+import { BookingRulesCard } from "@/components/booking-rules"
 import { Link } from "@/i18n/navigation"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAxios } from "@/hooks/useAxios"
@@ -129,6 +130,8 @@ export default function BookingsPage() {
           ))}
         </div>
       )}
+
+      <BookingRulesCard className="border-border text-muted-foreground mt-10 border-t pt-5" />
 
       <Dialog open={dialog.mode === "confirm"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>
         <DialogContent>
