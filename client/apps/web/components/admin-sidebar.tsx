@@ -25,21 +25,24 @@ export function AdminSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="bg-muted/30 flex w-52 shrink-0 flex-col gap-1 border-r p-4">
-      <p className="text-muted-foreground mb-3 px-2 text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
+    // Mobile: horizontal scrolling top bar · md+: fixed sidebar column
+    <aside className="bg-muted/30 flex w-full shrink-0 flex-row items-center gap-1 overflow-x-auto border-b p-2 md:w-52 md:flex-col md:items-stretch md:overflow-visible md:border-r md:border-b-0 md:p-4">
+      <p className="text-muted-foreground hidden px-2 text-xs font-semibold tracking-widest uppercase md:mb-3 md:block">
+        🐾 Admin
+      </p>
       {NAV_ITEMS.filter((item) => item.permission === null || can(item.permission)).map((item) => (
         <Button
           key={item.href}
           variant="ghost"
           size="sm"
-          className={cn("justify-start", pathname === item.href && "bg-muted font-semibold")}
+          className={cn("shrink-0 md:justify-start", pathname === item.href && "bg-muted font-semibold")}
           render={<Link href={item.href} />}
         >
           {t(item.key)}
         </Button>
       ))}
-      <div className="mt-auto pt-4">
-        <Button variant="ghost" size="sm" className="justify-start" render={<Link href="/" />}>
+      <div className="shrink-0 md:mt-auto md:pt-4">
+        <Button variant="ghost" size="sm" className="md:justify-start" render={<Link href="/" />}>
           {t("backToSite")}
         </Button>
       </div>

@@ -22,9 +22,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="flex min-h-svh">
+    // Stacks on mobile (nav bar on top), sidebar layout from md up
+    <div className="flex min-h-svh flex-col md:flex-row">
       <AdminSidebar />
-      <main className="flex-1 overflow-x-auto px-6 py-8">{children}</main>
+      <main className="flex-1 overflow-x-auto px-4 py-6 md:px-6 md:py-8">{children}</main>
     </div>
   )
 }
