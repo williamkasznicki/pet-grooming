@@ -46,6 +46,9 @@ export class ServiceResponseDto {
   @ApiProperty({ type: String, nullable: true, description: 'Thai description (falls back to description)' })
   descriptionTh!: string | null;
 
+  @ApiProperty({ type: String, nullable: true, description: 'Preset icon key (see SERVICE_ICONS)' })
+  icon!: string | null;
+
   @ApiProperty()
   active!: boolean;
 
@@ -65,6 +68,7 @@ export class ServiceResponseDto {
       description: service.description,
       nameTh: service.nameTh,
       descriptionTh: service.descriptionTh,
+      icon: service.icon,
       active: service.active,
       createdAt: service.createdAt.toISOString(),
       updatedAt: service.updatedAt.toISOString(),

@@ -29,6 +29,7 @@ export class ServicesService {
         description: dto.description,
         nameTh: dto.nameTh,
         descriptionTh: dto.descriptionTh,
+        icon: dto.icon,
         active: dto.active,
       });
       return ServiceResponseDto.from(service);
@@ -46,6 +47,7 @@ export class ServicesService {
         description: dto.description,
         nameTh: dto.nameTh,
         descriptionTh: dto.descriptionTh,
+        icon: dto.icon,
         active: dto.active,
       });
       return ServiceResponseDto.from(service);

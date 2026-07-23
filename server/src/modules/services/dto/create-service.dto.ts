@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { SERVICE_ICONS } from '../service-icons.constant.js';
 
 export class CreateServiceDto {
   @ApiProperty({ maxLength: 120, example: 'Full Groom' })
@@ -24,6 +25,11 @@ export class CreateServiceDto {
   @IsString()
   @MaxLength(1000)
   descriptionTh?: string;
+
+  @ApiPropertyOptional({ enum: SERVICE_ICONS, description: 'Preset icon key' })
+  @IsOptional()
+  @IsIn(SERVICE_ICONS)
+  icon?: string;
 
   @ApiPropertyOptional({ default: true })
   @IsOptional()

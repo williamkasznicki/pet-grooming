@@ -22,9 +22,18 @@ import { Input } from "@workspace/ui/components/input"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Textarea } from "@workspace/ui/components/textarea"
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
+
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
+import { SERVICE_ICONS, SERVICE_ICON_KEYS, ServiceIcon, type ServiceIconKey } from "@/lib/service-icons"
 import {
   emptyServiceValues,
   serviceDefaults,
@@ -104,6 +113,7 @@ export default function AdminServicesPage() {
       description: optionalString(values.description),
       nameTh: optionalString(values.nameTh),
       descriptionTh: optionalString(values.descriptionTh),
+      icon: optionalString(values.icon),
       active: values.active,
     }
     try {
@@ -184,7 +194,10 @@ export default function AdminServicesPage() {
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <CardTitle className="text-base">{service.name}</CardTitle>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <ServiceIcon service={service} className="text-primary size-5" />
+                      {service.name}
+                    </CardTitle>
                     {service.description && (
                       <p className="text-muted-foreground mt-1 line-clamp-3 text-sm">{service.description}</p>
                     )}
@@ -316,6 +329,46 @@ export default function AdminServicesPage() {
                   {...form.register("descriptionTh")}
                 />
                 {errors.descriptionTh?.message && <FieldError>{ta(errors.descriptionTh.message)}</FieldError>}
+              </Field>
+              <Field>
+                <FieldLabel>{t("icon")}</FieldLabel>
+                <Select
+                  value={form.watch("icon") || "none"}
+                  onValueChange={(value) =>
+                    form.setValue("icon", value === "none" || value === null ? "" : (value as string))
+                  }
+                >
+                  <SelectTrigger aria-label={t("icon")}>
+                    {/* Explicit label: Base UI only learns item labels after the popup first mounts */}
+                    <SelectValue>
+                      {(() => {
+                        const current = form.watch("icon")
+                        if (!current || !(current in SERVICE_ICONS)) return t("iconNone")
+                        const Icon = SERVICE_ICONS[current as ServiceIconKey]
+                        return (
+                          <span className="flex items-center gap-2">
+                            <Icon className="text-primary size-4" aria-hidden />
+                            {current}
+                          </span>
+                        )
+                      })()}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("iconNone")}</SelectItem>
+                    {SERVICE_ICON_KEYS.map((key) => {
+                      const Icon = SERVICE_ICONS[key]
+                      return (
+                        <SelectItem key={key} value={key}>
+                          <span className="flex items-center gap-2">
+                            <Icon className="text-primary size-4" aria-hidden />
+                            {key}
+                          </span>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
               </Field>
               <Field orientation="horizontal" data-invalid={!!errors.active}>
                 <Input id="service-active" type="checkbox" className="size-4" {...form.register("active")} />

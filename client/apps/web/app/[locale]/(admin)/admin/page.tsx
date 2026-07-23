@@ -9,43 +9,21 @@ import {
   RiTimeLine,
 } from "@remixicon/react"
 
-import { Badge } from "@workspace/ui/components/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Skeleton } from "@workspace/ui/components/skeleton"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table"
 
 import { useAxios } from "@/hooks/useAxios"
 import { Link } from "@/i18n/navigation"
 import type { Booking, Service } from "@/lib/types/api"
 import { toDateParam } from "@/lib/utils/date"
 import { DashboardCharts } from "./dashboard-charts"
+import { TodayTimeline } from "./today-timeline"
 
 /*
  * Overview per the Stitch admin comp: stat cards with lagoon icon chips
  * (today / upcoming / completed / revenue) over a today's-schedule table.
  * All numbers derive from the bookings list — no separate stats endpoint yet.
  */
-
-function StatusBadge({ booking }: { booking: Booking }) {
-  return (
-    <Badge
-      style={
-        booking.status.hexBgColorCode
-          ? { backgroundColor: booking.status.hexBgColorCode, color: booking.status.hexTextColorCode ?? undefined }
-          : undefined
-      }
-    >
-      {booking.status.code}
-    </Badge>
-  )
-}
 
 function StatCard({
   label,
@@ -73,7 +51,6 @@ function StatCard({
 
 export default function AdminDashboardPage() {
   const t = useTranslations("admin.dashboard")
-  const tb = useTranslations("admin.bookings")
   const format = useFormatter()
 
   const { data: bookings, isLoading } = useAxios<Booking[]>("/bookings", { throwOnError: true })
@@ -141,41 +118,8 @@ export default function AdminDashboardPage() {
               </Link>
             </CardHeader>
             <CardContent>
-              {stats.today.length === 0 ? (
-                <p className="text-muted-foreground text-sm">{t("noBookings")}</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{tb("colWhen")}</TableHead>
-                      <TableHead>{tb("colClient")}</TableHead>
-                      <TableHead>{tb("colService")}</TableHead>
-                      <TableHead>{tb("colStaff")}</TableHead>
-                      <TableHead>{tb("colPrice")}</TableHead>
-                      <TableHead>{tb("colStatus")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stats.today.map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="tabular-nums">
-                          {format.dateTime(new Date(booking.startsAt), { hour: "2-digit", minute: "2-digit" })}
-                        </TableCell>
-                        <TableCell>
-                          <span className="font-medium">{booking.petName}</span>{" "}
-                          <span className="text-muted-foreground">({booking.clientName})</span>
-                        </TableCell>
-                        <TableCell>{booking.serviceName}</TableCell>
-                        <TableCell className="text-muted-foreground">{booking.staffName}</TableCell>
-                        <TableCell className="font-mono tabular-nums">฿{Number(booking.priceThb)}</TableCell>
-                        <TableCell>
-                          <StatusBadge booking={booking} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              {/* Time-grid per groomer — parallel bookings read at a glance */}
+              <TodayTimeline bookings={stats.today} />
             </CardContent>
           </Card>
 

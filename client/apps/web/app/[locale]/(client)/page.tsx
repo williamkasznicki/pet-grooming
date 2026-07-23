@@ -1,9 +1,10 @@
 import Image from "next/image"
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { RiContrastDrop2Line, RiScissors2Fill, RiShowersFill } from "@remixicon/react"
+import { RiContrastDrop2Line } from "@remixicon/react"
 
 import { Link } from "@/i18n/navigation"
 import { nestApi } from "@/lib/api/nest"
+import { ServiceIcon } from "@/lib/service-icons"
 import { serviceDisplay, type MasterDataItem, type Service } from "@/lib/types/api"
 import { formatBand } from "@/lib/utils/weight"
 
@@ -28,16 +29,6 @@ async function getData(): Promise<{ services: Service[]; sizes: MasterDataItem[]
   } catch {
     return { services: [], sizes: [] } // backend down → landing still renders
   }
-}
-
-/** Icon per service, keyed loosely by name (comp uses cut/shower/drop symbols). */
-function ServiceIcon({ name }: { name: string }) {
-  const lower = name.toLowerCase()
-  const className = "text-primary size-9"
-  if (lower.includes("bath") || lower.includes("brush")) return <RiShowersFill className={className} aria-hidden />
-  if (lower.includes("groom") || lower.includes("cut") || lower.includes("nail"))
-    return <RiScissors2Fill className={className} aria-hidden />
-  return <RiContrastDrop2Line className={className} aria-hidden />
 }
 
 export default async function LandingPage({ params }: PageProps<"/[locale]">) {
@@ -145,7 +136,7 @@ export default async function LandingPage({ params }: PageProps<"/[locale]">) {
                   >
                     <div className="relative z-10 flex h-full flex-col items-start gap-2">
                       <div className="mb-4">
-                        <ServiceIcon name={service.name} />
+                        <ServiceIcon service={service} />
                       </div>
                       <h3 className="text-xl font-semibold">{display.name}</h3>
                       {display.description && <p className="text-muted-foreground mb-4">{display.description}</p>}

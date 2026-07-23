@@ -11,6 +11,8 @@ export const serviceSchema = z.object({
   description: z.string().max(1000, "validation.tooLong").optional(),
   nameTh: z.string().max(120, "validation.tooLong").optional(),
   descriptionTh: z.string().max(1000, "validation.tooLong").optional(),
+  /** Preset icon key or "" for none — validated against SERVICE_ICONS server-side too. */
+  icon: z.string().optional(),
   active: z.boolean().default(true),
 })
 
@@ -21,6 +23,7 @@ export const emptyServiceValues: ServiceValues = {
   description: "",
   nameTh: "",
   descriptionTh: "",
+  icon: "",
   active: true,
 }
 
@@ -31,6 +34,7 @@ export function serviceDefaults(service?: Service): ServiceValues {
         description: service.description ?? "",
         nameTh: service.nameTh ?? "",
         descriptionTh: service.descriptionTh ?? "",
+        icon: service.icon ?? "",
         active: service.active,
       }
     : emptyServiceValues

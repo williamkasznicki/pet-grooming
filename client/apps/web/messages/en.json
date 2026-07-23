@@ -171,6 +171,8 @@
       "description": "Description (English)",
       "nameTh": "Name (Thai)",
       "descriptionTh": "Description (Thai)",
+      "icon": "Icon",
+      "iconNone": "No icon (automatic)",
       "active": "Active",
       "tiers": "Size tiers",
       "price": "Price (THB)",

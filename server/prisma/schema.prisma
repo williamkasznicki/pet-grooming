@@ -164,6 +164,8 @@ model Service {
   // Thai display strings; clients fall back to the English fields when null
   nameTh        String?
   descriptionTh String?
+  // Preset icon key (see SERVICE_ICONS); clients fall back to a name heuristic
+  icon          String?
   active        Boolean @default(true)
 
   tiers    ServiceTier[]

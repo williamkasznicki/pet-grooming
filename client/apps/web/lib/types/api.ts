@@ -41,6 +41,8 @@ export type Service = {
   /** Thai display strings — fall back to name/description when null. */
   nameTh: string | null
   descriptionTh: string | null
+  /** Preset icon key (lib/service-icons.tsx); null → name heuristic. */
+  icon: string | null
   active: boolean
   createdAt: string
   updatedAt: string
