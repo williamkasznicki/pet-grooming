@@ -20,6 +20,8 @@ async function forward(request: NextRequest, ctx: RouteContext<"/api/proxy/[...p
   // Multipart (file uploads) must pass through as raw bytes — text-decoding
   // corrupts the binary parts
   const isBinary = contentType.startsWith("multipart/") || contentType.startsWith("application/octet-stream")
+  // AI chat runs an LLM with tool round-trips — well past the default timeout
+  const timeout = path[0] === "ai" ? 90_000 : undefined
   const body =
     request.method === "GET" || request.method === "HEAD"
       ? undefined
@@ -39,6 +41,7 @@ async function forward(request: NextRequest, ctx: RouteContext<"/api/proxy/[...p
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       maxBodyLength: 10 * 1024 * 1024,
+      ...(timeout ? { timeout } : {}),
     })
 
   let response = await send(await getAccessToken())

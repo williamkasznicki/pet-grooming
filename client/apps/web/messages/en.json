@@ -297,6 +297,16 @@
       "invalidJson": "Value must be valid JSON"
     }
   },
+  "assistant": {
+    "title": "Booking assistant",
+    "open": "Open booking assistant",
+    "close": "Close",
+    "send": "Send",
+    "greeting": "Hi! Ask me about services, prices, opening hours, or when a groomer is free. I'll point you to the booking page to finish.",
+    "placeholder": "Ask about services or availability…",
+    "thinking": "Thinking…",
+    "error": "The assistant is unavailable right now. Please try again."
+  },
   "auth": {
     "loginTitle": "Welcome back",
     "registerTitle": "Create your account",

@@ -4,6 +4,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 import { PermissionsGuard } from './common/guards/permissions.guard.js';
+import { AiModule } from './modules/ai/ai.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AvailabilityModule } from './modules/availability/availability.module.js';
 import { BookingsModule } from './modules/bookings/bookings.module.js';
@@ -33,6 +34,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     UsersModule,
     RolesModule,
     PermissionsModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [

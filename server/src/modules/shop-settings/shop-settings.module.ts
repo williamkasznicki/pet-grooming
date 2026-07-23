@@ -7,5 +7,6 @@ import { ShopSettingsService } from './shop-settings.service.js';
 @Module({
   controllers: [ShopSettingsController, BookingRulesController],
   providers: [ShopSettingsService, ShopSettingsRepository],
+  exports: [ShopSettingsService],
 })
 export class ShopSettingsModule {}
