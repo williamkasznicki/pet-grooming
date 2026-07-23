@@ -67,12 +67,18 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 - NestJS (`server/`) + **Prisma + PostgreSQL** (Docker Compose locally).
 - Core entities: `User` (+ `UserRole`/`Role`/`RolePermission`/`Permission`, `RefreshToken`), `Pet`, `Service` + `ServiceTier`, `StaffProfile` + `WorkingHours` + `TimeOff`, `Booking` + `BookingStatusEvent`, master data `MdPetSize`/`MdBookingStatus`/`MdPaymentStatus`, `ShopSetting`. Master data + RBAC rows are seeded via `prisma/seed.ts`.
 
-## AI integration (runtime)
+## AI integration (runtime) — implemented
 
-- **OpenRouter** via Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), called **only** from a NestJS `AiModule`. Key lives in `server/.env` (`OPENROUTER_API_KEY`), never in the client.
-- AI is the **intent/explanation layer only**. Availability, price, identity, authorization, and booking transitions are deterministic server responsibilities.
-- **v1 feature: booking assistant chat** — parses requests like "bath + nail trim for my poodle Friday afternoon" via tool-calling into check-availability / create-booking service calls. Streaming responses to the client through NestJS endpoints.
-- Model routing: capable model (e.g. `anthropic/claude-sonnet-5`) for the assistant; cheap model reserved for future summaries.
+- **OpenRouter** via Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), called **only** from the NestJS `AiModule` (`src/modules/ai`). Key lives in `server/.env` (`OPENROUTER_API_KEY`), never in the client. Model is `OPENROUTER_MODEL` (default a **free** tool-capable model, `openai/gpt-oss-20b:free`).
+- AI is the **intent/explanation layer only** — it has four **read-only** tools (`list_services`, `get_booking_rules`, `get_my_pets`, `check_availability`) that call the deterministic services. It never creates or changes bookings; it hands the customer to the Book page.
+- `POST /ai/chat` (authenticated) runs the model with `generateText` + `stopWhen: stepCountIs(6)`. `GET /ai/status` reports whether the key is set; without it the endpoint 503s and the client widget hides. Client widget: `components/chat-assistant.tsx`, mounted in the (client) layout. AI path gets a 90s timeout (browser axios + BFF proxy).
+- Pipeline explainer artifact: published to claude.ai (see the AI commit).
+
+## Auth 2FA & password reset — implemented
+
+- Login is two steps when `LOGIN_OTP_ENABLED` (default on): `POST /auth/login` verifies the password and emails a 6-digit code, returning a challenge; `POST /auth/login/verify` checks the code and issues tokens. Set `LOGIN_OTP_ENABLED=false` for single-step.
+- Forgot/reset: `POST /auth/forgot-password` always returns ok (no account enumeration); `POST /auth/reset-password` verifies the newest reset code, updates the hash, and revokes all sessions.
+- Codes: `VerificationCode` table, sha256-hashed, 10-min TTL, 5-attempt cap, single use. `AUTH_DEV_ECHO_OTP=1` echoes codes in non-prod responses for local testing (double-gated). See `docs/AUTH.md`.
 
 ## Notifications
 
