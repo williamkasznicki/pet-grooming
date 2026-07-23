@@ -18,6 +18,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { Link } from "@/i18n/navigation"
 import type { MasterDataItem } from "@/lib/types/api"
+import { formatBand } from "@/lib/utils/weight"
 import { useBookingWizard } from "@/hooks/book/useBookingWizard"
 import { DATE_BOUNDS, STEP_ORDER } from "@/hooks/book/bookingState"
 
@@ -104,7 +105,7 @@ export default function BookPage() {
                         const size = sizeOf(tierOption.sizeId)
                         return (
                           <SizeBadge key={tierOption.id} size={size}>
-                            {size?.code} ฿{Number(tierOption.priceThb)}
+                            {formatBand(size)} ฿{Number(tierOption.priceThb)}
                           </SizeBadge>
                         )
                       })}
@@ -149,9 +150,13 @@ export default function BookPage() {
                   <CardContent className="flex items-center justify-between gap-3 pt-6">
                     <div>
                       <p className="font-medium">{candidate.name}</p>
-                      {candidate.breed && <p className="text-muted-foreground text-sm">{candidate.breed}</p>}
+                      <p className="text-muted-foreground text-sm">
+                        {candidate.breed}
+                        {candidate.breed && candidate.weightKg && " · "}
+                        {candidate.weightKg && `${Number(candidate.weightKg)} kg`}
+                      </p>
                     </div>
-                    {size && <SizeBadge size={size}>{size.code}</SizeBadge>}
+                    {size && <SizeBadge size={size}>{formatBand(size)}</SizeBadge>}
                   </CardContent>
                 </Card>
               )

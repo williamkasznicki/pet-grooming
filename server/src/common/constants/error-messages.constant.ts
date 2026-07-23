@@ -8,6 +8,12 @@ export const ErrorMessages = {
   // Pets
   PET_NOT_FOUND: 'Pet not found.',
   PET_SIZE_INVALID: 'Pet size does not exist or is inactive.',
+  PET_WEIGHT_UNMATCHED: 'No size band matches this weight — ask the shop to review its weight bands.',
+
+  // Master data
+  SIZE_BAND_NOT_FOUND: 'Size band not found.',
+  SIZE_BAND_RANGE_INVALID: 'minWeightKg must be less than maxWeightKg.',
+  SIZE_BAND_IN_USE: 'This size band is referenced by pets or service tiers — deactivate it instead.',
 
   // Users & RBAC
   USER_NOT_FOUND: 'User not found.',

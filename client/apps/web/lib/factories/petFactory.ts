@@ -10,21 +10,22 @@ import type { Pet } from "@/lib/types/api"
 export const petSchema = z.object({
   name: z.string().min(1, "validation.required").max(120, "validation.tooLong"),
   breed: z.string().optional(),
-  sizeId: z.number().int("validation.required").min(1, "validation.required"),
+  // Weight in kg; the size band is derived server-side — clients never pick a size
+  weightKg: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/, "validation.weight"),
   birthDate: z.string().optional(),
   notes: z.string().max(1000, "validation.tooLong").optional(),
 })
 
 export type PetValues = z.infer<typeof petSchema>
 
-export const emptyPetValues: PetValues = { name: "", breed: "", sizeId: 0, birthDate: "", notes: "" }
+export const emptyPetValues: PetValues = { name: "", breed: "", weightKg: "", birthDate: "", notes: "" }
 
 export function petDefaults(pet?: Pet): PetValues {
   return pet
     ? {
         name: pet.name,
         breed: pet.breed ?? "",
-        sizeId: pet.sizeId,
+        weightKg: pet.weightKg ?? "",
         // input[type=date] wants yyyy-MM-dd, the API returns ISO datetimes
         birthDate: pet.birthDate?.slice(0, 10) ?? "",
         notes: pet.notes ?? "",

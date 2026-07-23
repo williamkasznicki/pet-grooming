@@ -30,14 +30,15 @@ export class PetsService {
   }
 
   async create(dto: CreatePetDto, user: AuthUser): Promise<PetResponseDto> {
-    await this.ensureActiveSize(dto.sizeId);
+    const sizeId = await this.resolveBand(dto.weightKg);
 
     try {
       const pet = await this.petsRepository.create({
         ownerId: user.id,
         name: dto.name,
         breed: dto.breed,
-        sizeId: dto.sizeId,
+        weightKg: dto.weightKg,
+        sizeId,
         birthDate: dto.birthDate,
         notes: dto.notes,
       });
@@ -49,15 +50,14 @@ export class PetsService {
 
   async update(id: string, dto: UpdatePetDto, user: AuthUser): Promise<PetResponseDto> {
     await this.ensureExists(id, user);
-    if (dto.sizeId !== undefined) {
-      await this.ensureActiveSize(dto.sizeId);
-    }
+    const sizeId = dto.weightKg !== undefined ? await this.resolveBand(dto.weightKg) : undefined;
 
     try {
       const pet = await this.petsRepository.update(id, {
         name: dto.name,
         breed: dto.breed,
-        sizeId: dto.sizeId,
+        weightKg: dto.weightKg,
+        sizeId,
         birthDate: dto.birthDate,
         notes: dto.notes,
       });
@@ -84,9 +84,12 @@ export class PetsService {
     }
   }
 
-  private async ensureActiveSize(sizeId: number): Promise<void> {
-    if (!(await this.petsRepository.activeSizeExists(sizeId))) {
-      throw new BadRequestException(ErrorMessages.PET_SIZE_INVALID);
+  /** Weight → admin-defined band; clients never pick a size themselves. */
+  private async resolveBand(weightKg: number): Promise<number> {
+    const band = await this.petsRepository.findBandForWeight(weightKg);
+    if (!band) {
+      throw new BadRequestException(ErrorMessages.PET_WEIGHT_UNMATCHED);
     }
+    return band.id;
   }
 }

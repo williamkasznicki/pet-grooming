@@ -9,11 +9,12 @@ const prisma = new PrismaClient( {
   adapter: new PrismaPg( { connectionString: process.env.DATABASE_URL! } ),
 } );
 
+/** Weight bands: a pet belongs to the band where min <= weightKg < max (null max = open-ended). */
 const petSizes = [
-  { code: 'S', desc: 'Small (< 10 kg)', hexBgColorCode: '#DCFCE7', hexTextColorCode: '#166534' },
-  { code: 'M', desc: 'Medium (10–25 kg)', hexBgColorCode: '#DBEAFE', hexTextColorCode: '#1E40AF' },
-  { code: 'L', desc: 'Large (25–40 kg)', hexBgColorCode: '#FEF3C7', hexTextColorCode: '#92400E' },
-  { code: 'XL', desc: 'Extra large (> 40 kg)', hexBgColorCode: '#FEE2E2', hexTextColorCode: '#991B1B' },
+  { code: 'S', minWeightKg: '0', maxWeightKg: '10', desc: 'Small (< 10 kg)', hexBgColorCode: '#DCFCE7', hexTextColorCode: '#166534' },
+  { code: 'M', minWeightKg: '10', maxWeightKg: '25', desc: 'Medium (10–25 kg)', hexBgColorCode: '#DBEAFE', hexTextColorCode: '#1E40AF' },
+  { code: 'L', minWeightKg: '25', maxWeightKg: '40', desc: 'Large (25–40 kg)', hexBgColorCode: '#FEF3C7', hexTextColorCode: '#92400E' },
+  { code: 'XL', minWeightKg: '40', maxWeightKg: null, desc: 'Extra large (40 kg+)', hexBgColorCode: '#FEE2E2', hexTextColorCode: '#991B1B' },
 ];
 
 const bookingStatuses = [

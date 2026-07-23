@@ -15,12 +15,16 @@ datasource db {
 // ── Master data (admin-editable lookups) ─────────────────────────────
 
 model MdPetSize {
-  id               Int     @id @default(autoincrement())
-  code             String  @unique // "S" | "M" | "L" | "XL"
+  id               Int      @id @default(autoincrement())
+  code             String   @unique // short label, e.g. "S" | "M" | "L" | "XL"
+  /// Weight band bounds (kg): a pet belongs to the band where min <= weight < max.
+  /// maxWeightKg null = open-ended top band. Admin-editable.
+  minWeightKg      Decimal  @default(0) @db.Decimal(5, 2)
+  maxWeightKg      Decimal? @db.Decimal(5, 2)
   hexBgColorCode   String?
   hexTextColorCode String?
   desc             String?
-  isActive         Boolean @default(true)
+  isActive         Boolean  @default(true)
 
   pets  Pet[]
   tiers ServiceTier[]
@@ -134,6 +138,8 @@ model Pet {
   owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name      String
   breed     String?
+  /// Client-entered weight; the size band (sizeId) is DERIVED from it server-side.
+  weightKg  Decimal?  @db.Decimal(5, 2)
   sizeId    Int
   size      MdPetSize @relation(fields: [sizeId], references: [id])
   birthDate DateTime?

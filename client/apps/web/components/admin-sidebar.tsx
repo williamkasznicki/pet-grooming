@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { href: "/admin", key: "dashboard", permission: null },
   { href: "/admin/bookings", key: "bookings", permission: Permissions.UPDATE_BOOKING },
   { href: "/admin/services", key: "services", permission: Permissions.MANAGE_SERVICES },
+  { href: "/admin/sizes", key: "sizes", permission: Permissions.MANAGE_SERVICES },
   { href: "/admin/staff", key: "staff", permission: Permissions.MANAGE_STAFF },
   { href: "/admin/settings", key: "settings", permission: Permissions.MANAGE_SETTINGS },
   { href: "/admin/users", key: "users", permission: Permissions.MANAGE_USERS },

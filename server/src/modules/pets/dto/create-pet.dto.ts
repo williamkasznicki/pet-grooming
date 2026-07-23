@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { IsDate, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
 export class CreatePetDto {
   @ApiProperty({ maxLength: 120, example: 'Mochi' })
@@ -14,11 +14,12 @@ export class CreatePetDto {
   @MaxLength(120)
   breed?: string;
 
-  @ApiProperty({ description: 'MdPetSize id', example: 1 })
+  @ApiProperty({ description: 'Pet weight in kg — the size band is derived server-side', example: 7.5 })
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  sizeId!: number;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.1)
+  @Max(999)
+  weightKg!: number;
 
   @ApiPropertyOptional({ type: String, format: 'date-time' })
   @IsOptional()

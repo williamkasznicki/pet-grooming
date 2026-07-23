@@ -49,4 +49,17 @@ export class PetsRepository {
     });
     return size !== null;
   }
+
+  /** The active band containing this weight: min <= weight < max (null max = open-ended). */
+  findBandForWeight(weightKg: number): Promise<{ id: number } | null> {
+    return this.prisma.client.mdPetSize.findFirst({
+      where: {
+        isActive: true,
+        minWeightKg: { lte: weightKg },
+        OR: [{ maxWeightKg: null }, { maxWeightKg: { gt: weightKg } }],
+      },
+      orderBy: { minWeightKg: 'desc' }, // tightest matching band wins if ranges ever overlap
+      select: { id: true },
+    });
+  }
 }

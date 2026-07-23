@@ -10,6 +10,12 @@ export class MasterDataResponseDto {
   @ApiProperty({ example: 'S' })
   code!: string;
 
+  @ApiProperty({ type: String, nullable: true, description: 'Weight band lower bound (kg) — pet sizes only', example: '0' })
+  minWeightKg!: string | null;
+
+  @ApiProperty({ type: String, nullable: true, description: 'Upper bound (kg), null = open-ended — pet sizes only', example: '10' })
+  maxWeightKg!: string | null;
+
   @ApiProperty({ type: String, nullable: true, example: '#DCFCE7' })
   hexBgColorCode!: string | null;
 
@@ -23,9 +29,12 @@ export class MasterDataResponseDto {
   isActive!: boolean;
 
   static from(record: MasterDataRecord): MasterDataResponseDto {
+    const withWeights = 'minWeightKg' in record ? record : null;
     return {
       id: record.id,
       code: record.code,
+      minWeightKg: withWeights?.minWeightKg?.toString() ?? null,
+      maxWeightKg: withWeights?.maxWeightKg?.toString() ?? null,
       hexBgColorCode: record.hexBgColorCode,
       hexTextColorCode: record.hexTextColorCode,
       desc: record.desc,

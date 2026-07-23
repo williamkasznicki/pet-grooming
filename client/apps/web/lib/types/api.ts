@@ -3,6 +3,9 @@
 export type MasterDataItem = {
   id: number
   code: string
+  /** Weight band bounds (kg) — pet sizes only; null elsewhere. */
+  minWeightKg: string | null
+  maxWeightKg: string | null
   hexBgColorCode: string | null
   hexTextColorCode: string | null
   desc: string | null
@@ -14,6 +17,8 @@ export type Pet = {
   ownerId: string
   name: string
   breed: string | null
+  /** Client-entered weight; sizeId is derived from it server-side. */
+  weightKg: string | null
   sizeId: number
   birthDate: string | null
   notes: string | null

@@ -14,7 +14,10 @@ export class PetResponseDto {
   @ApiProperty({ type: String, nullable: true })
   breed!: string | null;
 
-  @ApiProperty({ description: 'MdPetSize id' })
+  @ApiProperty({ type: String, nullable: true, description: 'Weight in kg', example: '7.5' })
+  weightKg!: string | null;
+
+  @ApiProperty({ description: 'Derived MdPetSize (weight band) id' })
   sizeId!: number;
 
   @ApiProperty({ type: String, nullable: true, format: 'date-time' })
@@ -36,6 +39,7 @@ export class PetResponseDto {
       ownerId: pet.ownerId,
       name: pet.name,
       breed: pet.breed,
+      weightKg: pet.weightKg?.toString() ?? null,
       sizeId: pet.sizeId,
       birthDate: pet.birthDate?.toISOString() ?? null,
       notes: pet.notes,

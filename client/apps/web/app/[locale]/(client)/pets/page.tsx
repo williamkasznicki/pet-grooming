@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
-import { Controller, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
@@ -19,13 +19,6 @@ import {
 } from "@workspace/ui/components/dialog"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@workspace/ui/components/field"
 import { Input } from "@workspace/ui/components/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
 import { Skeleton } from "@workspace/ui/components/skeleton"
 import { Textarea } from "@workspace/ui/components/textarea"
 
@@ -36,6 +29,7 @@ import { emptyPetValues, petDefaults, petSchema, type PetValues } from "@/lib/fa
 import { Permissions } from "@/lib/permissions"
 import type { MasterDataItem, Pet } from "@/lib/types/api"
 import { optionalString } from "@/lib/utils/string"
+import { formatBand } from "@/lib/utils/weight"
 
 /** One state machine instead of open-flags + editing/deleting/error trios. */
 type DialogState =
@@ -72,7 +66,7 @@ export default function PetsPage() {
     const payload = {
       name: values.name.trim(),
       breed: optionalString(values.breed),
-      sizeId: values.sizeId,
+      weightKg: Number(values.weightKg),
       birthDate: values.birthDate || undefined,
       notes: optionalString(values.notes),
     }
@@ -138,13 +132,19 @@ export default function PetsPage() {
                             : undefined
                         }
                       >
-                        {size.code}
+                        {formatBand(size)}
                       </Badge>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent className="flex min-h-28 flex-col gap-3">
-                  {pet.breed && <p className="text-sm">{pet.breed}</p>}
+                  {(pet.breed || pet.weightKg) && (
+                    <p className="text-sm">
+                      {pet.breed}
+                      {pet.breed && pet.weightKg && " · "}
+                      {pet.weightKg && `${Number(pet.weightKg)} kg`}
+                    </p>
+                  )}
                   {pet.notes && <p className="text-muted-foreground line-clamp-4 text-sm">{pet.notes}</p>}
                   <div className="mt-auto flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => openForm(pet)}>
@@ -181,31 +181,19 @@ export default function PetsPage() {
                 <Input id="pet-breed" aria-invalid={!!errors.breed} {...form.register("breed")} />
                 {errors.breed?.message && <FieldError>{ta(errors.breed.message)}</FieldError>}
               </Field>
-              <Controller
-                control={form.control}
-                name="sizeId"
-                render={({ field }) => (
-                  <Field data-invalid={!!errors.sizeId}>
-                    <FieldLabel htmlFor="pet-size">{t("size")}</FieldLabel>
-                    <Select
-                      value={field.value ? String(field.value) : ""}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    >
-                      <SelectTrigger id="pet-size" className="w-full" aria-invalid={!!errors.sizeId}>
-                        <SelectValue placeholder={t("sizePlaceholder")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {sizes.map((size) => (
-                          <SelectItem key={size.id} value={String(size.id)}>
-                            {size.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.sizeId?.message && <FieldError>{ta(errors.sizeId.message)}</FieldError>}
-                  </Field>
-                )}
-              />
+              <Field data-invalid={!!errors.weightKg}>
+                <FieldLabel htmlFor="pet-weight">{t("weight")}</FieldLabel>
+                <Input
+                  id="pet-weight"
+                  type="number"
+                  step="0.1"
+                  min="0.1"
+                  inputMode="decimal"
+                  aria-invalid={!!errors.weightKg}
+                  {...form.register("weightKg")}
+                />
+                {errors.weightKg?.message && <FieldError>{ta(errors.weightKg.message)}</FieldError>}
+              </Field>
               <Field data-invalid={!!errors.birthDate}>
                 <FieldLabel htmlFor="pet-birth-date">{t("birthDate")}</FieldLabel>
                 <Input id="pet-birth-date" type="date" aria-invalid={!!errors.birthDate} {...form.register("birthDate")} />
