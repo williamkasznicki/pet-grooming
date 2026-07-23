@@ -2,7 +2,7 @@ import { Suspense } from "react"
 import { hasLocale, NextIntlClientProvider } from "next-intl"
 import { setRequestLocale } from "next-intl/server"
 import { notFound } from "next/navigation"
-import { Geist_Mono, DM_Sans } from "next/font/google"
+import { Geist_Mono, DM_Sans, Mitr } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -12,6 +12,9 @@ import { routing } from "@/i18n/routing"
 import { cn } from "@workspace/ui/lib/utils"
 
 const dmSans = DM_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-sans" })
+
+// Display face for the landing: rounded + real Thai glyphs (DM Sans has none)
+const mitr = Mitr({ subsets: ["latin", "thai"], weight: ["500", "600"], variable: "--font-display" })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -38,7 +41,7 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[lo
     <html
       lang={locale}
       suppressHydrationWarning
-      className={cn("antialiased", fontMono.variable, "font-sans", dmSans.variable)}
+      className={cn("antialiased", fontMono.variable, "font-sans", dmSans.variable, mitr.variable)}
     >
       <body>
         <NextIntlClientProvider>

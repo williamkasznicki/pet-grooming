@@ -22,10 +22,24 @@
     "logout": "Log out"
   },
   "landing": {
+    "eyebrow": "Premium grooming",
     "title": "Happy pets, fresh looks",
-    "subtitle": "Book a bath, groom, or nail trim with our groomers in minutes.",
+    "subtitle": "Book a bath, groom, or nail trim with our groomers in minutes — priced fairly by your pet's weight.",
     "cta": "Book an appointment",
-    "servicesTitle": "Our services"
+    "ctaSecondary": "See services",
+    "servicesTitle": "Our services",
+    "servicesSubtitle": "Fair prices by weight — no guessing sizes.",
+    "from": "from ฿{price}",
+    "book": "Book",
+    "stepsTitle": "Booking takes a minute",
+    "step1Title": "Pick a service & your pet",
+    "step1Desc": "Tell us your pet's weight once — we price the right tier automatically.",
+    "step2Title": "Choose a time",
+    "step2Desc": "See real open slots and pick any groomer, or let us assign one.",
+    "step3Title": "Pay at the shop",
+    "step3Desc": "Instant confirmation by email. No prepayment needed.",
+    "finalTitle": "Ready for a fresh look?",
+    "finalSubtitle": "Your groomer is a few taps away."
   },
   "pets": {
     "title": "My Pets",
