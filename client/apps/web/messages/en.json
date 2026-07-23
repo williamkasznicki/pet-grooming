@@ -121,10 +121,16 @@
       "logout": "Log out"
     },
     "dashboard": {
+      "overview": "Overview",
+      "overviewSubtitle": "Today's metrics and upcoming appointments.",
       "today": "Today's bookings",
-      "upcoming": "Upcoming",
+      "statToday": "Bookings today",
+      "statUpcoming": "Still to come",
+      "statCompleted": "Completed",
+      "statRevenue": "Revenue today",
+      "viewAll": "View all",
       "noBookings": "No bookings today.",
-      "stat": "{count} {status}"
+      "next7": "{count, plural, =0 {No confirmed bookings} one {# confirmed booking} other {# confirmed bookings}} in the next 7 days."
     },
     "bookings": {
       "title": "Bookings",

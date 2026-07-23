@@ -121,10 +121,16 @@
       "logout": "ออกจากระบบ"
     },
     "dashboard": {
+      "overview": "ภาพรวม",
+      "overviewSubtitle": "สถิติวันนี้และนัดหมายที่กำลังจะมาถึง",
       "today": "การจองวันนี้",
-      "upcoming": "กำลังจะมาถึง",
+      "statToday": "การจองวันนี้",
+      "statUpcoming": "ที่ยังมาไม่ถึง",
+      "statCompleted": "เสร็จสิ้นแล้ว",
+      "statRevenue": "รายได้วันนี้",
+      "viewAll": "ดูทั้งหมด",
       "noBookings": "วันนี้ไม่มีการจอง",
-      "stat": "{count} {status}"
+      "next7": "มีการจองยืนยันแล้ว {count} รายการใน 7 วันข้างหน้า"
     },
     "bookings": {
       "title": "การจอง",
