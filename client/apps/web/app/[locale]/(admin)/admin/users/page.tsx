@@ -32,12 +32,14 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table"
+import { Tabs, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 
 import { useAxios } from "@/hooks/useAxios"
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
 import { optionalString } from "@/lib/utils/string"
+import { RolesPanel, type Permission, type Role } from "./roles-panel"
 
 type AdminUser = {
   id: string
@@ -46,13 +48,6 @@ type AdminUser = {
   phone: string | null
   roles: string[]
   createdAt: string
-}
-
-type Role = {
-  id: number
-  name: string
-  group: string
-  permissions: string[]
 }
 
 type UserValues = {
@@ -75,7 +70,11 @@ export default function AdminUsersPage() {
   const { data: users, isLoading: usersLoading, refetch: refetchUsers } = useAxios<AdminUser[]>("/users", {
     throwOnError: true,
   })
-  const { data: roles, isLoading: rolesLoading } = useAxios<Role[]>("/roles", { throwOnError: true })
+  const { data: roles, isLoading: rolesLoading, refetch: refetchRoles } = useAxios<Role[]>("/roles", {
+    throwOnError: true,
+  })
+  const { data: allPermissions } = useAxios<Permission[]>("/permissions", { throwOnError: true })
+  const [tab, setTab] = useState<"users" | "roles">("users")
   const [dialog, setDialog] = useState<DialogState>({ mode: "closed" })
   const [values, setValues] = useState<UserValues>({ name: "", phone: "" })
   const [selectedRoleId, setSelectedRoleId] = useState<string>("")
@@ -161,8 +160,22 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold">{t("title")}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">{t("title")}</h1>
+        <Tabs value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
+          <TabsList>
+            <TabsTrigger value="users">{t("tabUsers")}</TabsTrigger>
+            <TabsTrigger value="roles">{t("tabRoles")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
+      {tab === "roles" && !isLoading && (
+        <RolesPanel roles={roles ?? []} permissions={allPermissions ?? []} refetchRoles={refetchRoles} />
+      )}
+
+      {tab === "users" && (
+        <>
       {/* Search + role filter */}
       <div className="flex flex-wrap items-center gap-2">
         <Input
@@ -247,6 +260,8 @@ export default function AdminUsersPage() {
             ))}
           </TableBody>
         </Table>
+      )}
+        </>
       )}
 
       <Dialog open={dialog.mode === "edit"} onOpenChange={(open) => !open && setDialog({ mode: "closed" })}>

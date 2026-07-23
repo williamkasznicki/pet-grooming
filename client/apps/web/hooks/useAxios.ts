@@ -14,7 +14,7 @@ export type UseAxiosResult<T> = {
   refetch: () => void
 }
 
-type Settled<T> = { key: string; data?: T; error?: Error }
+type Settled<T> = { key: string; baseKey: string; data?: T; error?: Error }
 
 /**
  * SWR/TanStack-style contract over the axios client (docs/DESIGN.md: axios only):
@@ -26,6 +26,8 @@ type Settled<T> = { key: string; data?: T; error?: Error }
  * - `config` passes through to axios (method defaults to GET); it is part of
  *   the request key, so changing it re-fetches
  * - stale responses are ignored (unmount/key-change guard); refetch() re-runs
+ *   in place — previous data stays visible while the new request is in flight
+ *   (SWR-style), so components don't unmount into loading skeletons
  * - `throwOnError` rethrows during render so the nearest error.tsx boundary
  *   catches it (Next docs: app/getting-started/error-handling) — use for data
  *   the page cannot exist without; keep inline handling for optional widgets
@@ -40,18 +42,19 @@ export function useAxios<T>(
   const [refreshIndex, setRefreshIndex] = useState(0)
 
   const configKey = options?.config ? JSON.stringify(options.config) : ""
-  const key = path === null ? null : `${path}#${configKey}#${refreshIndex}`
+  const baseKey = path === null ? null : `${path}#${configKey}`
+  const key = baseKey === null ? null : `${baseKey}#${refreshIndex}`
 
   useEffect(() => {
-    if (key === null || path === null) return
+    if (key === null || baseKey === null || path === null) return
     let ignore = false
     api
       .request<T>({ url: path, method: "GET", ...(options?.config ?? {}) })
       .then((res) => {
-        if (!ignore) setSettled({ key, data: res.data })
+        if (!ignore) setSettled({ key, baseKey, data: res.data })
       })
       .catch((err: unknown) => {
-        if (!ignore) setSettled({ key, error: err instanceof Error ? err : new Error(String(err)) })
+        if (!ignore) setSettled({ key, baseKey, error: err instanceof Error ? err : new Error(String(err)) })
       })
     return () => {
       ignore = true
@@ -60,8 +63,10 @@ export function useAxios<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, path])
 
-  // Results from a previous key are stale — treated as still loading.
-  const current = settled && settled.key === key ? settled : null
+  // Results from a different query are stale — treated as still loading.
+  // Same query, older refreshIndex = a refetch in flight: keep showing the
+  // previous result instead of flashing back to a loading state.
+  const current = settled && settled.baseKey === baseKey ? settled : null
 
   if (options?.throwOnError && current?.error) {
     throw current.error

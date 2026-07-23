@@ -201,7 +201,18 @@
       "selectRole": "เลือกบทบาท",
       "search": "ค้นหาชื่อหรืออีเมล…",
       "filterRole": "บทบาท",
-      "allRoles": "ทุกบทบาท"
+      "allRoles": "ทุกบทบาท",
+      "tabUsers": "ผู้ใช้",
+      "tabRoles": "บทบาท"
+    },
+    "roles": {
+      "searchPlaceholder": "ค้นหาบทบาท…",
+      "permissionsCount": "{count} สิทธิ์",
+      "permissionsTitle": "สิทธิ์การใช้งาน",
+      "hint": "เปิด/ปิดสวิตช์เพื่อกำหนดสิทธิ์ให้บทบาทนี้",
+      "selectAll": "เลือกทั้งหมด",
+      "removeAll": "ลบทั้งหมด",
+      "pickRole": "เลือกบทบาทเพื่อจัดการสิทธิ์"
     },
     "sizes": {
       "title": "ขนาดสัตว์เลี้ยง",

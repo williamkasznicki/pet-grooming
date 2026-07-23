@@ -7,6 +7,8 @@ import { RiCloseLine, RiMenuLine } from "@remixicon/react"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
+import { LocaleToggle } from "@/components/locale-toggle"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Link, usePathname } from "@/i18n/navigation"
 import { usePermissions } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
@@ -45,24 +47,35 @@ export function AdminSidebar() {
     </>
   )
 
+  const toggles = (
+    <div className="flex items-center gap-1 border-t pt-2">
+      <LocaleToggle />
+      <ThemeToggle />
+    </div>
+  )
+
   return (
     <>
-      {/* Mobile: collapsed top bar with hamburger */}
-      <div className="bg-muted/30 border-b md:hidden">
-        <div className="flex h-12 items-center justify-between px-4">
+      {/* Mobile: hamburger bar; the panel OVERLAYS content (absolute), never pushes it */}
+      <div className="bg-background relative z-40 border-b md:hidden">
+        <div className="bg-muted/30 flex h-12 items-center justify-between px-4">
           <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            {menuOpen ? <RiCloseLine /> : <RiMenuLine />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <LocaleToggle />
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <RiCloseLine /> : <RiMenuLine />}
+            </Button>
+          </div>
         </div>
         {menuOpen && (
-          <nav className="flex flex-col gap-1 border-t px-2 py-2">
+          <nav className="bg-background absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b px-2 py-2 shadow-lg">
             {links(() => setMenuOpen(false))}
             <Button variant="ghost" size="sm" className="justify-start" render={<Link href="/" />}>
               {t("backToSite")}
@@ -71,14 +84,15 @@ export function AdminSidebar() {
         )}
       </div>
 
-      {/* Desktop: fixed sidebar */}
-      <aside className="bg-muted/30 hidden w-52 shrink-0 flex-col gap-1 border-r p-4 md:flex">
+      {/* Desktop: STICKY sidebar — stays in place while the content scrolls */}
+      <aside className="bg-muted/30 sticky top-0 hidden h-svh w-52 shrink-0 flex-col gap-1 self-start overflow-y-auto border-r p-4 md:flex">
         <p className="text-muted-foreground mb-3 px-2 text-xs font-semibold tracking-widest uppercase">🐾 Admin</p>
         {links()}
-        <div className="mt-auto pt-4">
+        <div className="mt-auto flex flex-col gap-2 pt-4">
           <Button variant="ghost" size="sm" className="justify-start" render={<Link href="/" />}>
             {t("backToSite")}
           </Button>
+          {toggles}
         </div>
       </aside>
     </>

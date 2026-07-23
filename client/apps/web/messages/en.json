@@ -201,7 +201,18 @@
       "selectRole": "Select a role",
       "search": "Search name or email…",
       "filterRole": "Role",
-      "allRoles": "All roles"
+      "allRoles": "All roles",
+      "tabUsers": "Users",
+      "tabRoles": "Roles"
+    },
+    "roles": {
+      "searchPlaceholder": "Search roles…",
+      "permissionsCount": "{count} permissions",
+      "permissionsTitle": "Permissions",
+      "hint": "Toggle switches to assign or remove permissions from this role",
+      "selectAll": "Select all",
+      "removeAll": "Remove all",
+      "pickRole": "Select a role to manage its permissions"
     },
     "sizes": {
       "title": "Size Bands",

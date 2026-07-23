@@ -1,30 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { useLocale, useTranslations } from "next-intl"
+import { useTranslations } from "next-intl"
 import { RiCloseLine, RiMenuLine } from "@remixicon/react"
 
 import { Button } from "@workspace/ui/components/button"
 
+import { LocaleToggle } from "@/components/locale-toggle"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { Link, useRouter } from "@/i18n/navigation"
 import { useAuth } from "@/lib/auth/auth-context"
 import { Permissions } from "@/lib/permissions"
 
 export function SiteHeader() {
   const t = useTranslations("nav")
-  const locale = useLocale()
   const { user, can, logout } = useAuth()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
-
-  const switchLocale = (next: string) => {
-    // HARD navigation on purpose: swapping <html lang> re-renders the root
-    // layout, and a soft nav makes React re-encounter next-themes' inline
-    // <script> (dev warning; script would not re-run anyway). A full load
-    // gives a clean document in the new locale.
-    const target = window.location.pathname.replace(new RegExp(`^/${locale}(?=/|$)`), `/${next}`)
-    window.location.assign(target + window.location.search)
-  }
 
   const onLogout = () => {
     setMenuOpen(false)
@@ -78,14 +70,9 @@ export function SiteHeader() {
     </>
   )
 
-  const localeButton = (
-    <Button variant="ghost" size="sm" onClick={() => switchLocale(locale === "en" ? "th" : "en")}>
-      {locale === "en" ? "ไทย" : "EN"}
-    </Button>
-  )
-
   return (
-    <header className="border-b">
+    // relative: the mobile panel is an absolute OVERLAY, never pushing content
+    <header className="bg-background relative z-40 border-b">
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
         <Link href="/" className="shrink-0 font-semibold" onClick={close}>
           🐾 Pet Grooming
@@ -94,13 +81,15 @@ export function SiteHeader() {
         {/* Desktop */}
         <nav className="hidden items-center gap-1 text-sm md:flex">
           {navItems}
-          {localeButton}
+          <LocaleToggle />
+          <ThemeToggle />
           {authItems}
         </nav>
 
         {/* Mobile controls */}
         <div className="flex items-center gap-1 md:hidden">
-          {localeButton}
+          <LocaleToggle />
+          <ThemeToggle />
           <Button
             variant="ghost"
             size="icon-sm"
@@ -113,9 +102,9 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* Mobile panel */}
+      {/* Mobile panel — overlays the page content */}
       {menuOpen && (
-        <nav className="flex flex-col gap-1 border-t px-4 py-3 text-sm md:hidden [&>button]:justify-start [&>a]:justify-start">
+        <nav className="bg-background absolute inset-x-0 top-full z-50 flex flex-col gap-1 border-b px-4 py-3 text-sm shadow-lg md:hidden [&>button]:justify-start [&>a]:justify-start">
           {navItems}
           <div className="mt-2 flex items-center gap-2 border-t pt-3">{authItems}</div>
         </nav>

@@ -1,0 +1,24 @@
+"use client"
+
+import { useLocale } from "next-intl"
+
+import { Button } from "@workspace/ui/components/button"
+
+export function LocaleToggle() {
+  const locale = useLocale()
+
+  const switchLocale = () => {
+    // HARD navigation on purpose: swapping <html lang> re-renders the root
+    // layout, and a soft nav makes React re-encounter next-themes' inline
+    // <script> (dev warning). A full load gives a clean document.
+    const next = locale === "en" ? "th" : "en"
+    const target = window.location.pathname.replace(new RegExp(`^/${locale}(?=/|$)`), `/${next}`)
+    window.location.assign(target + window.location.search)
+  }
+
+  return (
+    <Button variant="ghost" size="sm" onClick={switchLocale}>
+      {locale === "en" ? "ไทย" : "EN"}
+    </Button>
+  )
+}
