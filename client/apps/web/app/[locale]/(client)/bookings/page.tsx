@@ -75,6 +75,10 @@ export default function BookingsPage() {
       })
   }, [bookings, filter, statusFilter, search])
 
+  // Cancel is only offered for a confirmed booking that hasn't started yet; the
+  // server still enforces the exact cutoff (startsAt − cancelCutoffHours).
+  const nowIso = new Date().toISOString()
+
   const confirmCancel = async () => {
     if (dialog.mode !== "confirm") return
     setDialog({ ...dialog, busy: true, busyError: undefined })
@@ -154,7 +158,7 @@ export default function BookingsPage() {
                 <p>{format.dateTime(new Date(booking.startsAt), { dateStyle: "medium", timeStyle: "short" })}</p>
                 <p className="text-muted-foreground">{t("price", { price: format.number(Number(booking.priceThb)) })}</p>
                 <p>{booking.paymentStatus === "PAID" ? t("paymentPAID") : t("paymentUNPAID")}</p>
-                {booking.status.code === "CONFIRMED" && (
+                {booking.status.code === "CONFIRMED" && booking.startsAt > nowIso && (
                   <Button
                     variant="outline"
                     size="sm"
