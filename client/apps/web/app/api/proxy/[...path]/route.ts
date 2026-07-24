@@ -55,6 +55,11 @@ async function forward(request: NextRequest, ctx: RouteContext<"/api/proxy/[...p
     }
   }
 
+  // 204/304 must not carry a body — NextResponse.json() always writes one,
+  // which makes undici throw. Return an empty response for those statuses.
+  if (response.status === 204 || response.status === 304) {
+    return new NextResponse(null, { status: response.status })
+  }
   return NextResponse.json(response.data ?? null, { status: response.status })
 }
 
