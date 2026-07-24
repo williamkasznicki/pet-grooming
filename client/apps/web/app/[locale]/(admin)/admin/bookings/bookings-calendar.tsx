@@ -34,6 +34,54 @@ function minutesOfDay(iso: string): number {
   return date.getHours() * 60 + date.getMinutes()
 }
 
+type Placed = { booking: Booking; startMin: number; endMin: number; col: number; cols: number }
+
+/**
+ * Lay overlapping bookings side-by-side. Bookings are grouped into clusters
+ * (chains that transitively overlap); within a cluster each gets the lowest
+ * free column, and every block in the cluster shares the cluster's column
+ * count so widths line up and nothing stacks on top of anything else.
+ */
+function layoutDay(list: Booking[], openMin: number, closeMin: number): Placed[] {
+  const items = list
+    .map((booking) => ({
+      booking,
+      startMin: Math.max(minutesOfDay(booking.startsAt), openMin),
+      endMin: Math.min(minutesOfDay(booking.endsAt), closeMin),
+    }))
+    .filter((item) => item.endMin > item.startMin)
+    .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin)
+
+  const placed: Placed[] = []
+  let cluster: (typeof items)[number][] = []
+  let clusterEnd = -1
+  const colEnds: number[] = [] // last end-time per column, for the current cluster
+
+  const flush = () => {
+    const cols = colEnds.length
+    for (const entry of cluster) placed.push({ ...entry, col: (entry as Placed).col, cols })
+    cluster = []
+    colEnds.length = 0
+    clusterEnd = -1
+  }
+
+  for (const item of items) {
+    if (cluster.length > 0 && item.startMin >= clusterEnd) flush()
+    let col = colEnds.findIndex((end) => end <= item.startMin)
+    if (col === -1) {
+      col = colEnds.length
+      colEnds.push(item.endMin)
+    } else {
+      colEnds[col] = item.endMin
+    }
+    ;(item as Placed).col = col
+    cluster.push(item)
+    clusterEnd = Math.max(clusterEnd, item.endMin)
+  }
+  if (cluster.length > 0) flush()
+  return placed
+}
+
 export function BookingsCalendar({ bookings, onSelect }: { bookings: Booking[]; onSelect: (booking: Booking) => void }) {
   const t = useTranslations("admin.bookings")
   const format = useFormatter()
@@ -135,23 +183,24 @@ export function BookingsCalendar({ bookings, onSelect }: { bookings: Booking[]; 
 
             <div className="w-12 shrink-0" />
             {days.map((day) => {
-              const dayBookings = byDay.get(toDateParam(day)) ?? []
+              const placed = layoutDay(byDay.get(toDateParam(day)) ?? [], openMin, closeMin)
               return (
                 <div key={day.toISOString()} className="border-border/40 relative flex-1 border-l">
-                  {dayBookings.map((booking) => {
-                    const start = Math.max(minutesOfDay(booking.startsAt), openMin)
-                    const end = Math.min(minutesOfDay(booking.endsAt), closeMin)
-                    if (end <= start) return null
+                  {placed.map(({ booking, startMin, endMin, col, cols }) => {
                     const faded = FADED.has(booking.status.code)
+                    const widthPct = 100 / cols
                     return (
                       <button
                         key={booking.id}
                         type="button"
                         onClick={() => onSelect(booking)}
-                        className="absolute inset-x-0.5 overflow-hidden rounded-md border px-1 py-0.5 text-left text-[11px] shadow-sm transition-transform hover:z-10 hover:scale-[1.02]"
+                        className="absolute overflow-hidden rounded-md border px-1 py-0.5 text-left text-[11px] shadow-sm transition-transform hover:z-20 hover:scale-[1.02]"
                         style={{
-                          top: ((start - openMin) / totalMin) * bodyHeight + 1,
-                          height: Math.max(((end - start) / totalMin) * bodyHeight - 2, 18),
+                          top: ((startMin - openMin) / totalMin) * bodyHeight + 1,
+                          height: Math.max(((endMin - startMin) / totalMin) * bodyHeight - 2, 18),
+                          left: `calc(${col * widthPct}% + 1px)`,
+                          width: `calc(${widthPct}% - 2px)`,
+                          zIndex: 10 + col,
                           backgroundColor: booking.status.hexBgColorCode ?? "var(--secondary)",
                           color: booking.status.hexTextColorCode ?? "var(--secondary-foreground)",
                           opacity: faded ? 0.5 : 1,

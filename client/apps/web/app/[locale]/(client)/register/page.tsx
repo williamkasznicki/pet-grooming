@@ -35,7 +35,7 @@ export default function RegisterPage () {
         name: values.name,
         email: values.email,
         password: values.password,
-        phone: values.phone || undefined,
+        phone: values.phone,
       } )
       router.replace( "/" )
     } catch ( err ) {
@@ -74,8 +74,8 @@ export default function RegisterPage () {
                 { errors.password?.message && <FieldError>{ t( errors.password.message ) }</FieldError> }
               </Field>
               <Field data-invalid={ !!errors.phone }>
-                <FieldLabel htmlFor="phone">{ t( "phone" ) }</FieldLabel>
-                <Input id="phone" type="tel" aria-invalid={ !!errors.phone } { ...form.register( "phone" ) } />
+                <FieldLabel htmlFor="phone">{ t( "phoneRequired" ) }</FieldLabel>
+                <Input id="phone" type="tel" autoComplete="tel" aria-invalid={ !!errors.phone } { ...form.register( "phone" ) } />
                 { errors.phone?.message && <FieldError>{ t( errors.phone.message ) }</FieldError> }
               </Field>
               { serverError && <FieldError>{ serverError }</FieldError> }

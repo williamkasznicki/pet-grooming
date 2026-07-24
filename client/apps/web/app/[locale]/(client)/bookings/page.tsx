@@ -65,8 +65,14 @@ export default function BookingsPage() {
         if (query && !`${booking.serviceName} ${booking.petName}`.toLowerCase().includes(query)) return false
         return true
       })
-      // Upcoming reads soonest-first; past reads most-recent-first
-      .sort((a, b) => (filter === "past" ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)))
+      // Cancelled/no-show sink below the live ones; within each group,
+      // upcoming reads soonest-first and past reads most-recent-first.
+      .sort((a, b) => {
+        const dead = (booking: Booking) => (booking.status.code === "CANCELLED" || booking.status.code === "NO_SHOW" ? 1 : 0)
+        const deadDiff = dead(a) - dead(b)
+        if (deadDiff !== 0) return deadDiff
+        return filter === "past" ? b.startsAt.localeCompare(a.startsAt) : a.startsAt.localeCompare(b.startsAt)
+      })
   }, [bookings, filter, statusFilter, search])
 
   const confirmCancel = async () => {

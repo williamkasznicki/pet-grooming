@@ -47,6 +47,7 @@ export const initialWizardState: WizardState = {
 }
 
 export type WizardAction =
+  | { type: "prefill"; service: Service; pet: Pet; date: Date | undefined }
   | { type: "selectService"; service: Service }
   | { type: "selectPet"; pet: Pet }
   | { type: "back"; to: Step }
@@ -63,6 +64,10 @@ export type WizardAction =
 
 export function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   switch (action.type) {
+    case "prefill":
+      // Deep link from the AI assistant: land on the time step with service,
+      // pet, and (optionally) date already chosen.
+      return { ...initialWizardState, step: "time", service: action.service, pet: action.pet, date: action.date }
     case "selectService":
       // New service invalidates everything downstream of step 1.
       return {

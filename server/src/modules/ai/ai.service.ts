@@ -7,6 +7,9 @@ import { AvailabilityService } from '../availability/availability.service.js';
 import { PetsService } from '../pets/pets.service.js';
 import { ServicesService } from '../services/services.service.js';
 import { ShopSettingsService } from '../shop-settings/shop-settings.service.js';
+import { AiRepository } from './ai.repository.js';
+
+const FRONTEND_URL = () => process.env.FRONTEND_URL ?? 'http://localhost:3000';
 
 /**
  * Booking assistant (docs/DESIGN.md). AI is the intent/explanation layer ONLY:
@@ -26,21 +29,31 @@ export class AiService {
     private readonly availabilityService: AvailabilityService,
     private readonly shopSettingsService: ShopSettingsService,
     private readonly petsService: PetsService,
+    private readonly aiRepository: AiRepository,
   ) {}
 
   get isConfigured(): boolean {
     return Boolean(process.env.OPENROUTER_API_KEY);
   }
 
-  /** Answer one chat turn. `messages` is the running conversation from the client. */
-  async chat(user: AuthUser, messages: ModelMessage[]): Promise<{ reply: string }> {
+  /**
+   * Answer one chat turn. `messages` is the running conversation from the
+   * client; the exchange is persisted to a ChatSession (proof/audit) and the
+   * session id is returned so the client can keep threading.
+   */
+  async chat(
+    user: AuthUser,
+    messages: ModelMessage[],
+    sessionId: string | undefined,
+  ): Promise<{ reply: string; sessionId: string }> {
     if (!this.isConfigured) {
       throw new ServiceUnavailableException('AI assistant is not configured (missing OPENROUTER_API_KEY).');
     }
 
     const openrouter = createOpenRouter({ apiKey: process.env.OPENROUTER_API_KEY! });
-    const model = process.env.OPENROUTER_MODEL ?? 'openai/gpt-oss-20b:free';
+    const model = process.env.OPENROUTER_MODEL ?? 'nvidia/nemotron-3-super-120b-a12b:free';
 
+    let reply: string;
     try {
       const result = await generateText({
         model: openrouter.chat(model),
@@ -50,11 +63,26 @@ export class AiService {
         // Allow a few tool round-trips (look up data, then answer)
         stopWhen: stepCountIs(6),
       });
-      return { reply: this.clean(result.text) || 'Sorry, I could not find an answer. Please try the booking page.' };
+      reply = this.clean(result.text) || 'Sorry, I could not find an answer. Please open the Book page.';
     } catch (error) {
       this.logger.error(`AI chat failed: ${String(error)}`);
       throw new ServiceUnavailableException('The assistant is temporarily unavailable. Please try again.');
     }
+
+    // Persist the exchange (best-effort — never fail the reply on a write error)
+    const resolvedSession = await this.aiRepository.resolveSession(user.id, sessionId).catch(() => null);
+    if (resolvedSession) {
+      const lastUser = [...messages].reverse().find((message) => message.role === 'user');
+      const userText = typeof lastUser?.content === 'string' ? lastUser.content : '';
+      await this.aiRepository
+        .appendMessages(resolvedSession, [
+          ...(userText ? [{ role: 'user', content: userText }] : []),
+          { role: 'assistant', content: reply },
+        ])
+        .catch((error: unknown) => this.logger.error(`Chat persist failed: ${String(error)}`));
+    }
+
+    return { reply, sessionId: resolvedSession ?? (sessionId ?? '') };
   }
 
   /** Strip chat-template leakage some small models append (e.g. "</assistant>", "<|...|>", trailing "]}"). */
@@ -70,12 +98,17 @@ export class AiService {
     const today = new Date().toISOString().slice(0, 10);
     return [
       'You are the friendly booking assistant for a single pet grooming shop.',
-      `Today is ${today}.`,
-      'You help customers understand services, prices, opening hours, and when groomers are free.',
-      'Always use the tools to get real data — never invent prices, hours, or availability.',
-      'Prices depend on the pet size band, which is derived from the pet weight; use get_my_pets to find a pet size, or ask the customer for the pet weight.',
-      'You CANNOT make, change, or cancel bookings. When the customer is ready, tell them to open the "Book" page to confirm — bookings are always finished there.',
-      'Keep answers short and warm. Reply in the same language the customer writes in (Thai or English).',
+      `Today is ${today} (use this to resolve "Friday", "tomorrow", etc.).`,
+      '',
+      'RULES — follow exactly:',
+      '- Always use the tools for real data. Never invent prices, hours, availability, or pet names.',
+      '- Pet names: ONLY use names returned by get_my_pets. If the customer mentions a pet you do not find in get_my_pets, say you do not see that pet and list the pets they do have. Never make up a pet named "Lucy" or similar.',
+      '- Prices depend on the pet size band (derived from weight). Use get_my_pets to get a pet size, or ask for the weight.',
+      '- Show open times as clean 12-hour clock times separated by commas, e.g. "12:00 PM, 12:30 PM, 1:00 PM". Never paste raw ISO timestamps or JSON.',
+      '- You CANNOT make, change, or cancel bookings. Bookings are always confirmed on the Book page.',
+      '- When the customer has picked a service AND a pet AND a day (and ideally a time), call create_booking_link and give them the exact link so their choices are pre-filled on the Book page. Phrase it like: "Open the Book page here: <link>".',
+      '- Write in plain, warm sentences. No code, no JSON, no XML/template tags in your answer.',
+      '- Reply in the same language the customer writes in (Thai or English).',
     ].join('\n');
   }
 
@@ -129,6 +162,24 @@ export class AiService {
             durationMin: availability.durationMin,
             openSlots: availability.slots.map((slot) => ({ start: slot.start, groomersFree: slot.staffIds.length })),
           };
+        },
+      }),
+
+      create_booking_link: tool({
+        description:
+          'Build a deep link to the Book page with the chosen service, pet, date and time pre-filled. Call this once the customer has picked what they want, then show them the link.',
+        inputSchema: z.object({
+          serviceId: z.string().describe('Service id from list_services'),
+          petId: z.string().describe('Pet id from get_my_pets'),
+          date: z.string().optional().describe('Chosen day, YYYY-MM-DD'),
+          start: z.string().optional().describe('Chosen slot start as ISO, from check_availability openSlots[].start'),
+        }),
+        execute: async ({ serviceId, petId, date, start }) => {
+          await Promise.resolve();
+          const params = new URLSearchParams({ serviceId, petId });
+          if (date) params.set('date', date);
+          if (start) params.set('start', start);
+          return { url: `${FRONTEND_URL()}/book?${params.toString()}` };
         },
       }),
     };

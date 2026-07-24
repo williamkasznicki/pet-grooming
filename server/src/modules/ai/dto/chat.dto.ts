@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsIn, IsString, MaxLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 
 export class ChatMessageDto {
   @ApiProperty({ enum: ['user', 'assistant'] })
@@ -20,11 +20,20 @@ export class ChatDto {
   @ValidateNested({ each: true })
   @Type(() => ChatMessageDto)
   messages!: ChatMessageDto[];
+
+  @ApiPropertyOptional({ description: 'Existing chat session id to keep threading' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  sessionId?: string;
 }
 
 export class ChatReplyDto {
   @ApiProperty()
   reply!: string;
+
+  @ApiProperty({ description: 'Session id — send it back on the next turn' })
+  sessionId!: string;
 }
 
 export class AiStatusDto {

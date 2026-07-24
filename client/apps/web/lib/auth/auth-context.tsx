@@ -23,7 +23,7 @@ type AuthContextValue = {
   can: (permission: Permissions) => boolean
   login: (email: string, password: string) => Promise<LoginOutcome>
   verifyLoginOtp: (challengeId: string, code: string) => Promise<AuthUser>
-  register: (input: { email: string; password: string; name: string; phone?: string }) => Promise<AuthUser>
+  register: (input: { email: string; password: string; name: string; phone: string }) => Promise<AuthUser>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }

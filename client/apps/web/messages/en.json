@@ -109,7 +109,7 @@
       "hours": "The shop is open {open}–{close} (shop local time).",
       "noticeHours": "Book at least {hours, plural, one {# hour} other {# hours}} ahead.",
       "noticeMinutes": "Book at least {minutes} minutes ahead.",
-      "cancel": "Cancel free of charge up to {hours, plural, one {# hour} other {# hours}} before your appointment.",
+      "cancel": "Please let us know at least {hours, plural, one {# hour} other {# hours}} in advance if you need to cancel.",
       "payment": "Pay at the shop — no prepayment needed."
     }
   },
@@ -305,7 +305,8 @@
     "greeting": "Hi! Ask me about services, prices, opening hours, or when a groomer is free. I'll point you to the booking page to finish.",
     "placeholder": "Ask about services or availability…",
     "thinking": "Thinking…",
-    "error": "The assistant is unavailable right now. Please try again."
+    "error": "The assistant is unavailable right now. Please try again.",
+    "openBooking": "Open the Book page"
   },
   "auth": {
     "loginTitle": "Welcome back",
@@ -314,6 +315,7 @@
     "password": "Password",
     "name": "Your name",
     "phone": "Phone (optional)",
+    "phoneRequired": "Phone (we'll call to confirm)",
     "loginButton": "Log in",
     "registerButton": "Sign up",
     "noAccount": "No account yet?",

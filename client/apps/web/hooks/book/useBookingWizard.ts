@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useReducer } from "react"
+import { useEffect, useMemo, useReducer, useRef } from "react"
 import { useTranslations } from "next-intl"
+import { useSearchParams } from "next/navigation"
 
 import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAxios } from "@/hooks/useAxios"
@@ -42,14 +43,14 @@ export function useBookingWizard() {
   const pets = petsQuery.data ?? null
 
   // Event-driven (called from handlers, never an effect): keeps loading state
-  // out of render and satisfies react-hooks/set-state-in-effect.
-  const loadAvailability = async (forDate: Date, forStaff: string) => {
-    if (!state.service || !state.pet) return
+  // out of render and satisfies react-hooks/set-state-in-effect. Service/pet
+  // can be passed explicitly (deep-link prefill fires before state settles).
+  const loadAvailabilityFor = async (service: Service, pet: Pet, forDate: Date, forStaff: string) => {
     dispatch({ type: "slotsLoading" })
     try {
       const params = new URLSearchParams({
-        serviceId: state.service.id,
-        sizeId: String(state.pet.sizeId),
+        serviceId: service.id,
+        sizeId: String(pet.sizeId),
         date: toDateParam(forDate),
       })
       if (forStaff !== "any") params.set("staffId", forStaff)
@@ -59,6 +60,45 @@ export function useBookingWizard() {
       dispatch({ type: "slotsFailed", message: apiErrorMessage(err, tc("error")) })
     }
   }
+  const loadAvailability = async (forDate: Date, forStaff: string) => {
+    if (!state.service || !state.pet) return
+    await loadAvailabilityFor(state.service, state.pet, forDate, forStaff)
+  }
+
+  // Deep-link prefill (AI assistant link): once catalog + pets are loaded and
+  // the URL carries serviceId/petId, jump to the time step with them selected
+  // and load availability. Runs exactly once (ref guard); reads external URL
+  // state, so an init effect is the right tool.
+  const searchParams = useSearchParams()
+  const prefilled = useRef(false)
+  const desiredStart = useRef<string | null>(null)
+  useEffect(() => {
+    if (prefilled.current || !catalog || pets === null) return
+    const serviceId = searchParams.get("serviceId")
+    const petId = searchParams.get("petId")
+    if (!serviceId || !petId) {
+      prefilled.current = true
+      return
+    }
+    const service = catalog.services.find((candidate) => candidate.id === serviceId)
+    const pet = pets.find((candidate) => candidate.id === petId)
+    prefilled.current = true
+    if (!service || !pet) return
+    const dateParam = searchParams.get("date")
+    const date = dateParam ? new Date(`${dateParam}T00:00:00`) : undefined
+    desiredStart.current = searchParams.get("start")
+    dispatch({ type: "prefill", service, pet, date })
+    if (date) void loadAvailabilityFor(service, pet, date, "any")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog, pets])
+
+  // After prefilled availability arrives, auto-select the requested slot.
+  useEffect(() => {
+    if (!desiredStart.current || !state.availability) return
+    const match = state.availability.slots.find((slot) => slot.start === desiredStart.current)
+    desiredStart.current = null
+    if (match) dispatch({ type: "selectSlot", slot: match })
+  }, [state.availability])
 
   const confirmBooking = async () => {
     if (!state.service || !state.pet || !state.slot) return

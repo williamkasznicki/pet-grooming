@@ -1,5 +1,6 @@
 "use client"
 
+import { Suspense } from "react"
 import { useFormatter, useLocale, useTranslations } from "next-intl"
 
 import { Button } from "@workspace/ui/components/button"
@@ -31,6 +32,15 @@ function SizeBadge({ size, children }: { size: MasterDataItem | undefined; child
 }
 
 export default function BookPage() {
+  // useSearchParams (deep-link prefill in the wizard) needs a Suspense boundary
+  return (
+    <Suspense>
+      <BookWizard />
+    </Suspense>
+  )
+}
+
+function BookWizard() {
   const t = useTranslations("book")
   const tc = useTranslations("common")
   const tn = useTranslations("nav")

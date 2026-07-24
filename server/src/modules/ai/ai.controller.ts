@@ -21,6 +21,6 @@ export class AiController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: ChatReplyDto })
   chat(@Body() dto: ChatDto, @CurrentUser() user: AuthUser): Promise<ChatReplyDto> {
-    return this.aiService.chat(user, dto.messages);
+    return this.aiService.chat(user, dto.messages, dto.sessionId);
   }
 }

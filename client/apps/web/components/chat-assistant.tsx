@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useTranslations } from "next-intl"
-import { RiCloseLine, RiRobot2Line, RiSendPlane2Fill, RiSparkling2Fill } from "@remixicon/react"
+import { RiCalendarCheckLine, RiCloseLine, RiRobot2Line, RiSendPlane2Fill, RiSparkling2Fill } from "@remixicon/react"
 
 import { Button } from "@workspace/ui/components/button"
 import { Input } from "@workspace/ui/components/input"
@@ -13,6 +13,43 @@ import { api, apiErrorMessage } from "@/lib/api/client"
 import { useAuth } from "@/lib/auth/auth-context"
 
 type ChatMessage = { role: "user" | "assistant"; content: string }
+
+const URL_RE = /(https?:\/\/[^\s)]+)/g
+
+/**
+ * Render an assistant reply: linkify URLs, and if it contains a /book deep
+ * link, surface it as a prominent "Open the Book page" button (the link
+ * carries pre-filled service/pet/date/time query params).
+ */
+function AssistantContent({ text }: { text: string }) {
+  const t = useTranslations("assistant")
+  const bookUrl = text.match(URL_RE)?.find((url) => url.includes("/book?"))
+  // Hide the raw book URL from the prose (the button replaces it)
+  const prose = bookUrl ? text.replace(bookUrl, "").replace(/[ \t]+\n/g, "\n").trim() : text
+
+  return (
+    <>
+      {prose.split(URL_RE).map((part, index) =>
+        URL_RE.test(part) ? (
+          <a key={index} href={part} className="text-primary underline underline-offset-2">
+            {part}
+          </a>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+      {bookUrl && (
+        <a
+          href={bookUrl}
+          className="bg-primary text-primary-foreground mt-2 flex w-fit items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium no-underline"
+        >
+          <RiCalendarCheckLine className="size-4" />
+          {t("openBooking")}
+        </a>
+      )}
+    </>
+  )
+}
 
 /**
  * Booking assistant chat (docs/DESIGN.md). Talks to the server AiModule, which
@@ -28,6 +65,7 @@ export function ChatAssistant() {
 
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [input, setInput] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,7 +87,12 @@ export function ChatAssistant() {
     setError(null)
     try {
       // Free models can take a while with tool round-trips — allow 90s
-      const res = await api.post<{ reply: string }>("/ai/chat", { messages: next }, { timeout: 90_000 })
+      const res = await api.post<{ reply: string; sessionId: string }>(
+        "/ai/chat",
+        { messages: next, sessionId: sessionId ?? undefined },
+        { timeout: 90_000 },
+      )
+      setSessionId(res.data.sessionId || null)
       setMessages([...next, { role: "assistant", content: res.data.reply }])
     } catch (err) {
       setError(apiErrorMessage(err, t("error")))
@@ -103,7 +146,7 @@ export function ChatAssistant() {
                     : "bg-muted text-foreground",
                 )}
               >
-                {message.content}
+                {message.role === "assistant" ? <AssistantContent text={message.content} /> : message.content}
               </div>
             ))}
             {busy && <p className="text-muted-foreground animate-pulse">{t("thinking")}</p>}

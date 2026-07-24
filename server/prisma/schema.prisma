@@ -114,6 +114,7 @@ model User {
   refreshTokens     RefreshToken[]
   statusChanges     BookingStatusEvent[]
   verificationCodes VerificationCode[]
+  chatSessions      ChatSession[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -148,6 +149,59 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+// Audit of every transactional email (metadata only — never the body or code).
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String // recipient (may be the dev-redirect address in non-prod)
+  subject   String
+  template  String // "booking-confirmed" | "login-otp" | "password-reset"
+  status    String // "sent" | "failed" | "skipped"
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Booking-assistant chat, persisted as proof / audit of what the AI told users.
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // "user" | "assistant"
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+// Short-lived reservation while a client fills the confirm step (TTL via
+// expiresAt). No FK: holds are ephemeral and swept by expiry. The booking
+// transaction is still the real authority against double-booking.
+model SlotHold {
+  id        String   @id @default(cuid())
+  staffId   String
+  userId    String
+  petId     String?
+  startsAt  DateTime
+  endsAt    DateTime
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([staffId, startsAt])
+  @@index([expiresAt])
 }
 
 // ── Pets ─────────────────────────────────────────────────────────────
