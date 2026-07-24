@@ -141,9 +141,13 @@
       "next7": "มีการจองยืนยันแล้ว {count} รายการใน 7 วันข้างหน้า",
       "chartBookings": "การจอง",
       "chartRevenue": "รายได้ (฿)",
-      "chartBookingsTitle": "การจอง — {days} วันล่าสุด",
-      "chartRevenueTitle": "รายได้ที่ชำระแล้ว — {days} วันล่าสุด",
-      "chartByServiceTitle": "การจองตามบริการ"
+      "chartBookingsTitle": "การจอง",
+      "chartRevenueTitle": "รายได้ที่ชำระแล้ว",
+      "chartByServiceTitle": "การจองตามบริการ",
+      "periodDay": "วัน",
+      "periodWeek": "สัปดาห์",
+      "periodMonth": "เดือน",
+      "periodYear": "ปี"
     },
     "bookings": {
       "title": "การจอง",

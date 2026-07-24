@@ -63,6 +63,18 @@ export class BookingsRepository {
   }
 
   /** Bookings per staff member that day with blocking statuses — pickStaff load input. */
+  /** Upcoming, still-active bookings a client holds (anti-spam cap). */
+  countActiveUpcomingByClient(clientId: string, from: Date, statusCodes: string[]): Promise<number> {
+    return this.prisma.client.booking.count({
+      where: { clientId, startsAt: { gte: from }, status: { code: { in: statusCodes } } },
+    });
+  }
+
+  /** Bookings a client created since `since` (rapid-fire throttle). */
+  countCreatedByClientSince(clientId: string, since: Date): Promise<number> {
+    return this.prisma.client.booking.count({ where: { clientId, createdAt: { gte: since } } });
+  }
+
   async countBookingsByStaff(staffIds: string[], dayStart: Date, dayEnd: Date, statusCodes: string[]): Promise<Map<string, number>> {
     const rows = await this.prisma.client.booking.groupBy({
       by: ['staffId'],

@@ -141,9 +141,13 @@
       "next7": "{count, plural, =0 {No confirmed bookings} one {# confirmed booking} other {# confirmed bookings}} in the next 7 days.",
       "chartBookings": "Bookings",
       "chartRevenue": "Revenue (฿)",
-      "chartBookingsTitle": "Bookings — last {days} days",
-      "chartRevenueTitle": "Paid revenue — last {days} days",
-      "chartByServiceTitle": "Bookings by service"
+      "chartBookingsTitle": "Bookings",
+      "chartRevenueTitle": "Paid revenue",
+      "chartByServiceTitle": "Bookings by service",
+      "periodDay": "Day",
+      "periodWeek": "Week",
+      "periodMonth": "Month",
+      "periodYear": "Year"
     },
     "bookings": {
       "title": "Bookings",

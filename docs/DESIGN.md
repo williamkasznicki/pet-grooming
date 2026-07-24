@@ -16,7 +16,10 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 
 - **Instant confirm** on any valid open slot: `confirmed → in_progress → completed | cancelled | no_show`.
 - Staff/admin can cancel or reschedule any booking.
-- Cancellation cutoff is an admin setting.
+- Cancellation cutoff is an admin setting (`booking.cancelCutoffHours`, default **1**). Client copy is generated from it ("let us know at least N hours in advance"), never hardcoded.
+- **No double-booking**: create re-checks the slot inside a `SERIALIZABLE` transaction (per groomer *and* per pet) and retries once on write-conflict — the final guard regardless of what the client saw.
+- **Slot holds (TTL)**: entering the confirm step reserves the resolved groomer+time server-side for ~3 min (`SlotHold`, ephemeral, no FK, swept on expiry). A second client racing the same slot is turned away with `SLOT_HELD` before they reach confirm; the hold is released on confirm, on going back, or on leaving the page. `POST /bookings/holds` → `{ id, staffId, expiresAt }`, `DELETE /bookings/holds/:id`. Holds are a courtesy layer; the serializable create above is still authoritative (no websockets/SSE in v1).
+- **Anti-spam** (self-service clients only; staff/admin bypass): a client may hold at most 5 active upcoming bookings and create at most 3 within 10 minutes — both return HTTP 429 (`BOOKING_LIMIT_REACHED` / `BOOKING_RATE_LIMITED`). Checked before the expensive availability lookup.
 
 ## Services & pricing
 
@@ -65,12 +68,14 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 ## Backend & data
 
 - NestJS (`server/`) + **Prisma + PostgreSQL** (Docker Compose locally).
-- Core entities: `User` (+ `UserRole`/`Role`/`RolePermission`/`Permission`, `RefreshToken`), `Pet`, `Service` + `ServiceTier`, `StaffProfile` + `WorkingHours` + `TimeOff`, `Booking` + `BookingStatusEvent`, master data `MdPetSize`/`MdBookingStatus`/`MdPaymentStatus`, `ShopSetting`. Master data + RBAC rows are seeded via `prisma/seed.ts`.
+- Core entities: `User` (+ `UserRole`/`Role`/`RolePermission`/`Permission`, `RefreshToken`), `Pet`, `Service` + `ServiceTier`, `StaffProfile` + `WorkingHours` + `TimeOff`, `Booking` + `BookingStatusEvent`, `SlotHold` (ephemeral reservations), `EmailLog` (send metadata only), `ChatSession` + `ChatMessage` (AI transcripts), master data `MdPetSize`/`MdBookingStatus`/`MdPaymentStatus`, `ShopSetting`. Master data + RBAC rows are seeded via `prisma/seed.ts`.
+- Seeding: `npm run db:seed` (idempotent master data + admin) then, for local demos, `npm run db:seed:mock` (**destructive** — wipes transactional rows + non-admin users, then seeds groomers, clients, pets, and ~500 bookings spread over the past ~4 months and coming weeks so the dashboard charts have data; all mock users share password `password123`).
 
 ## AI integration (runtime) — implemented
 
-- **OpenRouter** via Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), called **only** from the NestJS `AiModule` (`src/modules/ai`). Key lives in `server/.env` (`OPENROUTER_API_KEY`), never in the client. Model is `OPENROUTER_MODEL` (default a **free** tool-capable model, `openai/gpt-oss-20b:free`).
-- AI is the **intent/explanation layer only** — it has four **read-only** tools (`list_services`, `get_booking_rules`, `get_my_pets`, `check_availability`) that call the deterministic services. It never creates or changes bookings; it hands the customer to the Book page.
+- **OpenRouter** via Vercel AI SDK (`ai` + `@openrouter/ai-sdk-provider`), called **only** from the NestJS `AiModule` (`src/modules/ai`). Key lives in `server/.env` (`OPENROUTER_API_KEY`), never in the client. Model is `OPENROUTER_MODEL` (default a **free** tool-capable model, `nvidia/nemotron-3-super-120b-a12b:free` — smaller free models garble tool output).
+- AI is the **intent/explanation layer only** — read-only tools (`list_services`, `get_booking_rules`, `get_my_pets`, `check_availability`) plus `create_booking_link`, which only *builds* a prefilled `/book?serviceId&petId&date&start` deep link. It never creates or changes bookings; it hands the customer to the Book page, which auto-selects the slot. The system prompt forbids inventing pet names and requires clean 12-hour times (no JSON/XML/code in replies).
+- Chat transcripts persist to `ChatSession`/`ChatMessage` (best-effort, as proof of what was suggested); `POST /ai/chat` accepts and returns a `sessionId` to thread the conversation.
 - `POST /ai/chat` (authenticated) runs the model with `generateText` + `stopWhen: stepCountIs(6)`. `GET /ai/status` reports whether the key is set; without it the endpoint 503s and the client widget hides. Client widget: `components/chat-assistant.tsx`, mounted in the (client) layout. AI path gets a 90s timeout (browser axios + BFF proxy).
 - Pipeline explainer artifact: published to claude.ai (see the AI commit).
 
@@ -83,6 +88,7 @@ Agreed via grilling session on 2026-07-22. This is the source of truth for v1 sc
 ## Notifications
 
 - **Email only in v1** (e.g. Resend): booking confirmations + reminders. Reminder timing is an admin setting. LINE Messaging API push comes later via the LINE scaffold.
+- Every send is recorded to `EmailLog` — **metadata only** (recipient, subject, template, status `sent|failed|skipped`, error), **never the body or any OTP/verification code**. Admins read the latest at `GET /email-logs` (`settings:manage`). Logging failures never block the send.
 
 ## Build order
 

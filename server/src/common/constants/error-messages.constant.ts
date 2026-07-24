@@ -51,6 +51,10 @@ export const ErrorMessages = {
   BOOKING_CUTOFF_PASSED: 'The cancellation window for this booking has passed.',
   BOOKING_ALREADY_PAID: 'This booking is already marked as paid.',
   BOOKING_CANCELLED_UNPAYABLE: 'A cancelled booking cannot be marked as paid.',
+  BOOKING_LIMIT_REACHED: 'You already have several upcoming bookings — please complete or cancel one before booking again.',
+  BOOKING_RATE_LIMITED: 'You are booking too quickly. Please wait a moment and try again.',
+  BOOKING_EMAIL_UNVERIFIED: 'Please verify your email (sign in to receive a code) before booking.',
+  SLOT_HELD: 'Someone is completing a booking for this time. Please pick another slot or try again shortly.',
 
   // Auth
   INVALID_CREDENTIALS: 'Invalid email or password.',

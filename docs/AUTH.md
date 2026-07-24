@@ -1,5 +1,9 @@
 # Authentication — how login works
 
+## Registration
+
+- `POST /auth/register { email, password, name, phone }`. **Phone is required** — staff call the client to confirm bookings, so we don't accept accounts without a reachable number (validated `^\+?[0-9\s-]{6,20}$` on both the NestJS DTO and the web form).
+
 ## Login flow
 
 ```mermaid

@@ -1,10 +1,11 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '../../common/decorators/auth.decorators.js';
 import type { AuthUser } from '../../common/types/auth.types.js';
 import { BookingsService } from './bookings.service.js';
 import { BookingResponseDto } from './dto/booking-response.dto.js';
 import { CreateBookingDto } from './dto/create-booking.dto.js';
+import { HoldSlotDto, SlotHoldResponseDto } from './dto/hold-slot.dto.js';
 import { OverrideBookingDto } from './dto/override-booking.dto.js';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto.js';
 
@@ -19,6 +20,21 @@ export class BookingsController {
   @ApiCreatedResponse({ type: BookingResponseDto, description: 'Instant-confirmed booking' })
   create(@Body() dto: CreateBookingDto, @CurrentUser() user: AuthUser): Promise<BookingResponseDto> {
     return this.bookingsService.create(dto, user);
+  }
+
+  @Post('holds')
+  @RequirePermissions('booking:create')
+  @ApiCreatedResponse({ type: SlotHoldResponseDto, description: 'Short-lived reservation of a slot for the confirm step' })
+  hold(@Body() dto: HoldSlotDto, @CurrentUser() user: AuthUser): Promise<SlotHoldResponseDto> {
+    return this.bookingsService.holdSlot(dto, user);
+  }
+
+  @Delete('holds/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions('booking:create')
+  @ApiNoContentResponse({ description: 'Release a slot reservation the user owns' })
+  releaseHold(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<void> {
+    return this.bookingsService.releaseHold(id, user);
   }
 
   @Get()

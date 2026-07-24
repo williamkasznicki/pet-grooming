@@ -100,17 +100,76 @@ export function useBookingWizard() {
     if (match) dispatch({ type: "selectSlot", slot: match })
   }, [state.availability])
 
+  // Slot hold (TTL): while the client sits on the confirm step, reserve the
+  // groomer+time server-side so a second person can't reach confirm for the
+  // same slot. The hold expires on its own; we also release it on leaving
+  // confirm and on unmount. The reservation is a courtesy — the serializable
+  // create is still the real double-booking guard.
+  const hold = useRef<{ id: string; staffId: string; start: string } | null>(null)
+  const releaseHold = async () => {
+    const current = hold.current
+    hold.current = null
+    if (current) await api.delete(`/bookings/holds/${current.id}`).catch(() => undefined)
+  }
+
+  useEffect(() => {
+    if (state.step !== "confirm" || !state.slot || !state.service || !state.pet) {
+      void releaseHold()
+      return
+    }
+    if (hold.current?.start === state.slot.start) return
+    const { service, pet, slot, staffFilter } = state
+    let cancelled = false
+    void (async () => {
+      await releaseHold()
+      try {
+        const res = await api.post<{ id: string; staffId: string }>("/bookings/holds", {
+          serviceId: service.id,
+          petId: pet.id,
+          startsAt: slot.start,
+          ...(staffFilter !== "any" ? { staffId: staffFilter } : {}),
+        })
+        if (cancelled) {
+          await api.delete(`/bookings/holds/${res.data.id}`).catch(() => undefined)
+          return
+        }
+        hold.current = { id: res.data.id, staffId: res.data.staffId, start: slot.start }
+      } catch (err) {
+        // 409 = someone already holds it; bounce back to the grid. Other errors
+        // are non-fatal — the confirm request will re-check availability.
+        if ((err as { response?: { status?: number } }).response?.status === 409) {
+          dispatch({ type: "submitConflicted", message: apiErrorMessage(err, t("slotTaken")) })
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.step, state.slot?.start])
+
+  // Release on unmount (navigating away without confirming or cancelling).
+  useEffect(() => {
+    return () => {
+      void releaseHold()
+    }
+  }, [])
+
   const confirmBooking = async () => {
     if (!state.service || !state.pet || !state.slot) return
     const { service, pet, slot, staffFilter, date } = state
+    // Book the exact groomer we reserved (resolves "any" to the held one).
+    const heldStaffId = hold.current?.start === slot.start ? hold.current.staffId : undefined
+    const staffId = heldStaffId ?? (staffFilter !== "any" ? staffFilter : undefined)
     dispatch({ type: "submitStart" })
     try {
       const res = await api.post<{ id: string }>("/bookings", {
         serviceId: service.id,
         petId: pet.id,
         startsAt: slot.start,
-        ...(staffFilter !== "any" ? { staffId: staffFilter } : {}),
+        ...(staffId ? { staffId } : {}),
       })
+      hold.current = null // create consumed our hold server-side
       dispatch({ type: "submitSucceeded", bookingId: res.data.id })
     } catch (err) {
       const status = (err as { response?: { status?: number } }).response?.status

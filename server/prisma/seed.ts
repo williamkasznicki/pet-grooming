@@ -109,7 +109,7 @@ const services: { name: string; description: string; nameTh: string; description
 const shopSettings: { key: string; value: unknown }[] = [
   { key: 'shop.timezone', value: 'Asia/Bangkok' },
   { key: 'shop.hours', value: { openMin: 9 * 60, closeMin: 18 * 60 } },
-  { key: 'booking.cancelCutoffHours', value: 2 },
+  { key: 'booking.cancelCutoffHours', value: 1 },
   { key: 'booking.slotStepMin', value: 30 },
   { key: 'booking.minNoticeMin', value: 60 },
   { key: 'reminder.hoursBefore', value: 24 },
