@@ -63,7 +63,16 @@ export class AiService {
         // Allow a few tool round-trips (look up data, then answer)
         stopWhen: stepCountIs(6),
       });
-      reply = this.clean(result.text) || 'Sorry, I could not find an answer. Please open the Book page.';
+      reply = this.clean(result.text);
+      if (!reply) {
+        // Small free models sometimes end a turn on a tool call with no prose.
+        // If they already built a booking link, surface it; otherwise steer
+        // the customer forward instead of dead-ending.
+        const link = this.extractBookingLink(result.steps);
+        reply = link
+          ? `Here's your pre-filled booking link — open it to confirm on the Book page: ${link}`
+          : 'Tell me the service, which of your pets, and the day, and I\'ll put together a booking link for you.';
+      }
     } catch (error) {
       this.logger.error(`AI chat failed: ${String(error)}`);
       throw new ServiceUnavailableException('The assistant is temporarily unavailable. Please try again.');
@@ -83,6 +92,19 @@ export class AiService {
     }
 
     return { reply, sessionId: resolvedSession ?? (sessionId ?? '') };
+  }
+
+  /** Find a booking URL the model built via create_booking_link across all tool steps. */
+  private extractBookingLink(steps: Awaited<ReturnType<typeof generateText>>['steps']): string | null {
+    for (const step of steps) {
+      for (const toolResult of step.toolResults) {
+        if (toolResult.toolName === 'create_booking_link') {
+          const output = toolResult.output as { url?: string } | undefined;
+          if (output?.url) return output.url;
+        }
+      }
+    }
+    return null;
   }
 
   /** Strip chat-template leakage some small models append (e.g. "</assistant>", "<|...|>", trailing "]}"). */
