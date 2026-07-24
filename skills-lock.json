@@ -85,6 +85,12 @@
       "skillPath": "skills/scope/SKILL.md",
       "computedHash": "00208bf2cb91a11ad5834cd32705392a5dac356a4aa980f9807b8f0b94ee0e4c"
     },
+    "shadcn": {
+      "source": "shadcn-ui/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "4f78ff7cd3a4f637b6fe30dbbab4a80a19dd63fa62d9352bed461ccfdbcbbf43"
+    },
     "skill-scout": {
       "source": "affaan-m/ECC",
       "sourceType": "github",
